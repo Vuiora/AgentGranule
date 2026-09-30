@@ -63,3 +63,5 @@ python examples/algorithm_round_1.py
 本轮使用 Python 模块接入。读取基线时 main 的实际文件树只有核心服务，未包含此前功能 PR 的 YAML／MCP 适配器文件；本轮没有自动恢复那些文件，算法交付不假定它们存在。
 
 合并通过单独算法 PR 申请进入 main，仍待人工审批；不执行自动合并。
+
+交付 PR：[算法第一轮 #5](https://github.com/Vuiora/AgentGranule/pull/5)。代码提交 5a40499 的 41 项测试在 Windows／Linux × Python 3.11／3.14 全部通过：[CI 证据](https://github.com/Vuiora/AgentGranule/actions/runs/36701400117)。后续对话及交付文档提交仅更新文档，审批以 PR 当前 head SHA 为准。

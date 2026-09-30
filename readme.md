@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-第一轮算法在 `feature/algorithm-round-1` 开发：依赖排序、粒度约束编译、执行调度与局部重算。算法接口与离线演示见 [docs/algorithms-round-1.md](docs/algorithms-round-1.md)。前置 #1–#4 已由人工合并；下表保留其历史审批层级，不表示当前仍待审批。
+第一轮算法 PR #5 已由维护者合并：依赖排序、粒度约束编译、执行调度与局部重算。算法接口与离线演示见 [docs/algorithms-round-1.md](docs/algorithms-round-1.md)。前置 #1–#4 已由人工合并；下表保留其历史审批层级。
 
-[第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 等待人工审批；41 项本地测试与四组合 CI 通过。
+[第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 已合并；其 41 项本地测试与四组合 CI 通过。
 
-`main` 已由维护者合并前置框架 PR，本轮开发在 `feature/algorithm-round-1`。算法通过 Python 模块调用；当前 main 的实际文件树包含核心服务，适配器的历史 PR 与当前文件树差异见算法文档。
+本轮 `codex/skill-mcp-workflow` 实现 [整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接：人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算。启用方式与一轮测试见 [接入说明](docs/skill-mcp-workflow.md)。53 项本地测试通过；本轮 PR 待人工审批。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
 
@@ -30,7 +30,7 @@
 ```sh
 python -m venv .venv
 # 激活虚拟环境后执行
-python -m pip install -e .
+python -m pip install -e ".[mcp]"
 python -m unittest discover -s tests -v
 python -m agentgranule create_session '{"title":"问题 A"}'
 ```

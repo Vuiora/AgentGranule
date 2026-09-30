@@ -1,0 +1,4 @@
+interface:
+  display_name: "AgentGranule"
+  short_description: "Run human-controlled task workflows with durable MCP records"
+  default_prompt: "Use $agentgranule-workflow to plan and execute this task with human granularity controls."

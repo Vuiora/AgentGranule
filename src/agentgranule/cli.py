@@ -5,9 +5,18 @@ import json
 import sys
 
 from .core import GranuleError, Project
+from .workflow import Workflow
+
+WORKFLOW_OPERATIONS = {
+    "create_workflow": ("session_id", "tasks", "context"),
+    "next_task": ("workflow_id",),
+    "submit_task": ("workflow_id", "request_id", "output"),
+    "workflow_status": ("workflow_id",),
+}
 
 
 OPERATIONS = {
+    **WORKFLOW_OPERATIONS,
     "create_session": ("title",),
     "add_problem": ("session_id", "description", "parent_id"),
     "add_module": ("session_id", "description", "parent_id"),
@@ -33,7 +42,8 @@ def main(argv=None):
         if not isinstance(arguments, dict) or set(arguments) - set(OPERATIONS[args.operation]):
             raise GranuleError("Invalid operation arguments")
         with Project(args.database) as project:
-            result = getattr(project, args.operation)(**arguments)
+            target = Workflow(project) if args.operation in WORKFLOW_OPERATIONS else project
+            result = getattr(target, args.operation)(**arguments)
         print(json.dumps({"result": result}, ensure_ascii=False))
         return 0
     except (GranuleError, TypeError, json.JSONDecodeError) as exc:

@@ -8,7 +8,7 @@
 
 [第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 已合并；其 41 项本地测试与四组合 CI 通过。
 
-本轮 `codex/skill-mcp-workflow` 实现 [整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接：人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算。启用方式与一轮测试见 [接入说明](docs/skill-mcp-workflow.md)。53 项本地测试通过；本轮 PR 待人工审批。
+本轮 `codex/skill-mcp-workflow` 实现 [整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接：人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算。启用方式与一轮测试见 [接入说明](docs/skill-mcp-workflow.md)。53 项本地测试通过；[PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 待人工审批。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
 

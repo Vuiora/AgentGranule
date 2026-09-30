@@ -45,4 +45,6 @@ python -X utf8 PATH_TO_SKILL_CREATOR/scripts/quick_validate.py .agents/skills/ag
 
 本地 Windows / Python 3.14：53 项通过（原有 41 项 + 工作流 9 项 + 接入 3 项），Skill 格式校验通过。新增覆盖：完整 DAG、稳定请求、校验失败可重试、数目／深度拒绝、上游修改拒绝下游旧结果、默认变更与覆盖优先级、局部重算、进程／连接重启恢复、并发重复提交仅接受一次、跨会话及非法图预检、CLI 后备完整闭环、真实官方 MCP 客户端与服务器子进程通信及 structuredContent。
 
-Skill 操作契约按真实 MCP 与 CLI 流程走查；未声称完成外部宿主 UI 自动加载测试或模型语义质量评测。CI 沿用 Windows/Linux × Python 3.11/3.14 矩阵，结果以本轮 PR 为准。
+Skill 操作契约按真实 MCP 与 CLI 流程走查；未声称完成外部宿主 UI 自动加载测试或模型语义质量评测。[代码提交 c6735a8 的 CI](https://github.com/Vuiora/AgentGranule/actions/runs/36715505637) 在 Windows/Linux × Python 3.11/3.14 四组合全部通过。安装 MCP 命令入口的隔离构建验证与 --help 通过。
+
+[PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 已创建并关联现有 milestone，等待人工评审当前 head SHA；Agent 不合并。

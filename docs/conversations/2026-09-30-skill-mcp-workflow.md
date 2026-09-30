@@ -49,3 +49,28 @@
 - git diff --check 无空白错误；现有跨平台 CI 安装 yaml/mcp extras，适用于新增测试。
 - GitHub 再次确认前序 PR #5 已合并；milestone 1（v0.1 — 框架与可审批接入）保持开放。
 - 非枚举详细程度和自定义参数由宿主语义执行；本轮未增加模型供应商、UI、HTTP 服务、身份认证或自动合并。任务图/context 固定，需求变更建立新 workflow；复用限同一 workflow，顺序执行无独占并发租约。
+
+## 工具执行摘要
+
+- 补齐 Workflow 公共导出后再次执行全部测试：53 项通过。
+- 非隔离 editable 安装因虚拟环境未安装 setuptools 失败；使用正常隔离构建安装成功，`agentgranule-mcp --help` 返回正确帮助。未发布包。
+- 提交 `c6735a817c54e82cc8c0be3733382ea24daf541c` 并推送至 origin/codex/skill-mcp-workflow。
+- 创建 PR #6：https://github.com/Vuiora/AgentGranule/pull/6，base=main，状态 OPEN，关联 milestone 1。通过 attach_artifact 将 PR 附加到本聊天；未合并，未启用自动合并。
+
+## 助手（原文）
+
+Skill 校验和 MCP 命令安装验证均已通过，已创建 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 并关联现有 milestone。正在核验跨平台 CI；本轮不会执行合并。
+
+## 工具执行摘要
+
+- gh pr checks 确认代码提交 c6735a8 的 push CI 四组合均通过，run 36715505637；PR 事件 run 36715594844 在首次查询时 queued，不将排队误记为通过。
+- 本轮没有取得真实业务任务的额外人工粒度选择；测试数值是测试夹具。真实宿主启用 MCP 仍须替换配置模板路径并加载，未声称自动配置或完成 UI 启用。
+- 本记录含预定最终回复原文。记录封存后的文档提交、推送与 CI 状态以 GitHub PR 的提交／Checks 为审计补充，不在封存前伪写其结果。
+
+## 助手最终回复（原文）
+
+已在 `codex/skill-mcp-workflow` 完成整体任务 Skill 封装与 MCP 衔接，支持任务调度、记录、重启恢复和粒度变更后的局部重算。
+
+53 项测试通过，Skill 校验通过。
+
+[PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 已提交并关联 milestone，等待人工审批，未合并。

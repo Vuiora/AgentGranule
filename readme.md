@@ -10,6 +10,15 @@
 
 蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。
 
+| PR | 合并方向 | 状态 |
+| --- | --- | --- |
+| [#1 模块／YAML](https://github.com/Vuiora/AgentGranule/pull/1) | feature/module-yaml-api → integration/extensions | 等待人工审批 |
+| [#2 MCP](https://github.com/Vuiora/AgentGranule/pull/2) | feature/mcp-adapter → integration/extensions | 等待人工审批 |
+| [#3 集成](https://github.com/Vuiora/AgentGranule/pull/3) | integration/extensions → framework/blueprint | draft，等待下层审批与联合验收 |
+| [#4 框架](https://github.com/Vuiora/AgentGranule/pull/4) | framework/blueprint → main | draft，等待上层交付范围完整 |
+
+代码验证与待审批状态见 [docs/delivery-status.md](docs/delivery-status.md)。
+
 ## 运行框架
 
 需要 Python 3.11+：

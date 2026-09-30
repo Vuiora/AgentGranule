@@ -1,6 +1,8 @@
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 from agentgranule import GranuleError, Project
 
@@ -86,6 +88,27 @@ class CoreTests(unittest.TestCase):
             self.project.set_granularity("unknown", 3, "human")
         with self.assertRaises(GranuleError):
             self.project.submit_result("unknown", [])
+
+    def test_concurrent_human_updates_have_distinct_revisions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "concurrent.sqlite3"
+            with Project(path) as project:
+                session = project.create_session("concurrent")
+                problem = project.add_problem(session, "B")
+            barrier = Barrier(4)
+
+            def update(count):
+                with Project(path) as project:
+                    barrier.wait(timeout=10)
+                    return project.set_granularity(problem, count, "human")["revision"]
+
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                revisions = list(executor.map(update, range(1, 5)))
+            self.assertEqual(sorted(revisions), [1, 2, 3, 4])
+            with Project(path) as project:
+                changes = [e["payload"] for e in project.history(session) if e["kind"] == "granularity.changed"]
+                self.assertEqual([c["revision"] for c in changes], [1, 2, 3, 4])
+                self.assertEqual([c["previous_count"] for c in changes], [None] + [c["count"] for c in changes[:-1]])
 
 
 if __name__ == "__main__":

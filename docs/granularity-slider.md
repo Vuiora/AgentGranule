@@ -1,42 +1,35 @@
-# 粒度滑块
+# 粒度小弹窗
 
-用户已明确授权新增滑块界面，并更正为“分支”开发。本轮基于已由人工合并的 Skill/MCP main `c240b94`，分支 `codex/granularity-slider`；不创建其他仓库，不合并 PR。
+按 [PR #7 的维护者批注](https://github.com/Vuiora/AgentGranule/pull/7#issuecomment-5912236674) 返工：取消网页界面，改为原生小弹窗，优化配色、留白、提示和按钮，只显示详细程度滑块，不展示列举数目模块。#7 已关闭且未合并；返工仍在 codex/granularity-slider 分支。
 
-交付 [PR #7](https://github.com/Vuiora/AgentGranule/pull/7)，等待人工评审当前 head SHA。
+## 使用
 
-## 启动
-
-Python 3.11+，在项目根目录执行：
+Python 3.11+，运行环境须包含 Tkinter；本地验证所用 Python 已支持。执行：
 
 ```sh
-python -m pip install -e .
-python -m agentgranule.slider --database .agentgranule/project.sqlite3 --port 8765
+python -m agentgranule.slider --database .agentgranule/project.sqlite3
 ```
 
-打开 `http://127.0.0.1:8765`。也可用安装后的 `agentgranule-slider` 命令。若需 MCP 和完整测试，安装 `python -m pip install -e ".[mcp]"`。本地服务仅监听 127.0.0.1，不自动启动模型处理。
+打开居中的 460×438 小弹窗，选择已有模块与方向，滑动到“简要／标准／详细”，点击“确认粒度”保存并关闭。按 Esc、取消或关闭按钮不写入设置。没有模块时先用 Skill／CLI 创建任务模块。已安装时可用 agentgranule-slider 命令。
 
-1. 选择已有模块，或通过“创建新任务模块”新建任务与模块。
-2. 选择或输入处理方向，例如 classification、advantages、explanation。
-3. 调整详细程度滑块：简要 brief、标准 standard、详细 detailed。
-4. 可启用列举数目和展开深度滑块；禁用会从参数中去掉对应约束。
-5. 检查预览并点击“保存粒度设置”，写入该模块／方向的人工设置。
+## Skill 调用
 
-初始数目滑块为 1–20，深度为 1–8；已有值超出此范围时扩展上限，不截断。其他自定义参数保留，已有自定义 detail_level 在未拖动详细程度时保留。所有参数仍遵守核心服务非空对象约束；不能通过清空全部参数删除覆盖设置。
+```sh
+python -m agentgranule.slider --database ABSOLUTE_DATABASE_PATH --module-id ACTUAL_MODULE_ID --direction explanation --output-file ABSOLUTE_NEW_CHOICE_FILE
+```
 
-每次保存显示有效参数来源及版本；未保存的拖动仅影响预览。若其他入口已经修改该方向，旧页面保存返回 409，请重新加载后调整，避免覆盖新的人工选择。切换模块／方向期间不允许保存旧数据，响应较晚的加载不会覆盖新选择。
+宿主保留进程等待真实用户操作：成功退出且 status=saved 才取得人工确认，control 为已经写入的设置，不重复提交；status=cancelled 表示未取得新选择。出错退出 2，不能当作默认授权。每次使用新结果文件，不读取上次留下的选择。详细契约见 [Skill 参考](../.agents/skills/agentgranule-workflow/references/contract.md#本地粒度弹窗)。远程或无显示环境明确说明弹窗不可用，改为对话询问，不启动浏览器或伪造选择。
 
-## 与算法、Skill、MCP 衔接
+弹窗仅修改 detail_level=brief/standard/detailed，其他已有参数原样保留。自定义详细程度显示原值，确认后才替换为所选级别。不提供数目、深度、新模块创建控件；核心旧接口保持兼容。
 
-滑块与核心服务使用同一个数据库，保存调用与 Python/CLI/MCP 相同的粒度更新逻辑；操作者记录为 human:slider，参数、前值、版本及可见保存操作记录在事件库。没有将所有方向强制映射成分类数目。
+## 一致性与记录
 
-保存后刷新当前会话的持久化工作流，使相关任务及后代失效；无关结果保留。宿主随后通过 next_task / submit_task 继续处理。AlgorithmRunner 会在下次运行时按相同设置重新检查缓存。保存仅修改粒度，不声称已完成语义重算或自动执行外部模型。
-
-服务端只接受自己的 Host / Origin 和 JSON 写入，拒绝跨站请求。界面不提供远程访问或身份认证功能。已有的核心接口与数据库迁移继续可用。
+使用与 MCP 相同的数据库路径。保存 source/revision/完整快照检查与设置更新共用 SQLite 事务，旧弹窗不能覆盖其他入口的新选择；重新加载后再确认。操作者为 human:popup，保存真实选择及变更事件。相关任务与后代失效，无关结果保留；实际语义重算仍由宿主执行。
 
 ## 验证
 
-61 项测试通过，包括新增 8 项实际 HTTP 测试：资源及模块发现、保存／自定义参数保留／人工记录、过期版本拒绝、并发旧页面只有一次保存成功、非法数目不写入、跨站写入拒绝、新模块默认转覆盖、相关工作流失效及无关结果保留。
+61 项测试通过，替换网页测试为原生弹窗服务的 8 项回归：参数保留／不添加 count、旧弹窗拒绝覆盖、并发仅接受一次、非法程度无写入、默认变化使快照过期、工作流局部失效与记录、取消向 Skill 回传且无写入、GUI 错误不产生人工选择。
 
-通过真实浏览器在独立 `.agentgranule/slider-preview.sqlite3` 验收数据库创建示例模块，键盘调到 detailed、count=5、max_depth=3，保存后刷新保留值；再用鼠标拖动 count=7，保存显示版本 2，数据库核验一致。这些是界面测试输入，不是用户对真实业务模块的粒度决定。
+真实 Tk 窗口初始化检查：460×438、单个 Scale、无数目文本控件，控件布局未超出窗口；关闭返回 cancelled。验证使用独立验收数据库，不改变真实任务选择。已通过 Skill quick_validate 和命令 --help；没有声称通过原生鼠标拖动／人工确认的端到端测试。
 
-![滑块验收界面](assets/granularity-slider.jpg)
+此前 docs/assets/granularity-slider.jpg 是已拒绝的网页历史验收图，只供历史记录参考，不代表当前弹窗。

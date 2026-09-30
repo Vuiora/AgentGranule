@@ -27,3 +27,18 @@ request 包含 request_id、task、description、granularity、constraints、inp
 输出示例：`{"items":["有依据的第一项","有依据的第二项"],"details":[{"text":"根","children":[{"text":"子层"}]}]}`。details 根深度为 1；max_depth 为上界，不要求人为凑层。服务端机械校验数目、非空格式、深度和版本；不评估语义。
 
 CLI 后备：`python -m agentgranule --database ABSOLUTE_DATABASE_PATH OPERATION JSON_OBJECT`，操作名／参数与上表一致。CLI 所有成功结果统一包在 result 内。为避免 shell 转义问题，可用 Python `subprocess.run([sys.executable, '-m', 'agentgranule', '--database', db, op, json.dumps(arguments, ensure_ascii=False)], check=True, capture_output=True, text=True, encoding='utf-8')`；Windows 设置 PYTHONIOENCODING=utf-8。数据库路径应在工作区或用户授权位置；不依赖宿主工作目录确定 MCP 数据库。
+
+
+## 本地粒度弹窗
+
+宿主通过当前项目已安装的 Python 启动：
+
+```sh
+python -m agentgranule.slider --database ABSOLUTE_DATABASE_PATH --module-id ACTUAL_MODULE_ID --direction explanation --output-file ABSOLUTE_CHOICE_JSON_PATH
+```
+
+此命令打开 460×438 的原生 Tk 小弹窗，无网页／HTTP 服务。仅设置 detail_level=brief/standard/detailed，不显示数目或深度模块，保留数据库原有的其他参数。实际确认后保存人工选择并关闭；取消／关闭返回 `{"status":"cancelled"}`，不写设置。成功为 `{"status":"saved","control":{...},"workflows":[...]}`。结果同时输出 stdout，并可保存到指定文件。
+
+每次调用使用新的输出文件，防止读取上次已确认的文件；启动后保留进程会话，等真实用户操作，不由 Agent 点击确认替代人工选择。只有进程成功退出且 status=saved 才作为本次人工选择；控制已写入，不重复提交。取消后可询问用户是否改用对话设置；GUI 不可用明确说明并使用对话入口，禁止自行填写答案。Tkinter 须由 Python 运行环境提供，未安装时会报告错误。
+
+MCP 继续负责记录和任务调度；弹窗由本地宿主启动，不能在无桌面的远程 MCP 服务端伪称向用户显示弹窗。宿主应使用与 MCP 相同的数据库绝对路径。启动前记录呈现给用户的模块、方向及建议，确认结果由核心记录；不得声称它能读取其他聊天。

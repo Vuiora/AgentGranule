@@ -37,7 +37,8 @@ class MCPTests(unittest.TestCase):
         async def scenario(client):
             names = {tool.name for tool in (await client.list_tools()).tools}
             self.assertEqual(names, {"create_session", "add_problem", "record_message", "set_granularity",
-                                     "prepare_plan", "submit_result", "history"})
+                                     "prepare_plan", "submit_result", "history", "add_module", "get_granularity",
+                                     "request_granularity", "set_default_granularity"})
             session = (await self.call(client, "create_session", title="问题 A"))["session_id"]
             await self.call(client, "record_message", session_id=session, role="user", content="B 分类数目设为 3。")
             a = (await self.call(client, "add_problem", session_id=session, description="A"))["problem_id"]
@@ -73,6 +74,34 @@ class MCPTests(unittest.TestCase):
             self.assertEqual(len(rejected_events), 2)
             self.assertTrue(all(not e["payload"]["accepted"] for e in rejected_events))
             self.assertEqual((await self.call(client, "prepare_plan", problem_id=problem))["count"], 5)
+        self.run_client(scenario)
+
+
+    def test_module_details_questions_and_project_defaults_over_stdio(self):
+        async def scenario(client):
+            session = (await self.call(client, "create_session", title="事件评估"))["session_id"]
+            module = (await self.call(client, "add_module", session_id=session, description="优缺分析"))["problem_id"]
+            question = await self.call(client, "request_granularity", problem_id=module, direction="advantages")
+            self.assertIn("列举多少项", question["question"])
+            self.assertEqual(question["source"], "builtin_default")
+            await self.call(client, "set_default_granularity", session_id=session, direction="disadvantages", parameters={"count": 4}, actor="human")
+            await self.call(client, "set_granularity", problem_id=module, direction="advantages", parameters={"count": 2}, actor="human")
+            await self.call(client, "set_granularity", problem_id=module, direction="explanation", parameters={"detail_level": "detailed"}, actor="human")
+            advantages = await self.call(client, "prepare_plan", problem_id=module, direction="advantages")
+            disadvantages = await self.call(client, "prepare_plan", problem_id=module, direction="disadvantages")
+            explanation = await self.call(client, "prepare_plan", problem_id=module, direction="explanation")
+            self.assertEqual(advantages["count"], 2)
+            self.assertEqual(disadvantages["count"], 4)
+            self.assertTrue(disadvantages["uses_default"])
+            self.assertEqual(explanation["parameters"], {"detail_level": "detailed"})
+            self.assertTrue((await self.call(client, "submit_result", plan_id=explanation["plan_id"], output={"text": "详细说明"}))["accepted"])
+            current = await self.call(client, "get_granularity", problem_id=module, direction="advantages")
+            self.assertEqual(current["source"], "module")
+            await self.call(client, "set_default_granularity", session_id=session, direction="disadvantages", parameters={"count": 5}, actor="human")
+            stale = await client.call_tool("submit_result", {"plan_id": disadvantages["plan_id"], "output": {"items": ["a", "b", "c", "d"]}})
+            self.assertTrue(stale.isError)
+            events = (await self.call(client, "history", session_id=session))["events"]
+            self.assertTrue(any(e["kind"] == "granularity.default_changed" for e in events))
         self.run_client(scenario)
 
 

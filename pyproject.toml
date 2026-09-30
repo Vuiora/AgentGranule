@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentgranule"
+version = "0.1.0"
+description = "Human-controlled agent processing granularity with conversation records"
+readme = "readme.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6.0.2,<7"]
+mcp = ["mcp>=1.28,<2"]
+
+[project.scripts]
+agentgranule = "agentgranule.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

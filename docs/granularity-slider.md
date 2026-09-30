@@ -2,6 +2,8 @@
 
 用户已明确授权新增滑块界面，并更正为“分支”开发。本轮基于已由人工合并的 Skill/MCP main `c240b94`，分支 `codex/granularity-slider`；不创建其他仓库，不合并 PR。
 
+交付 [PR #7](https://github.com/Vuiora/AgentGranule/pull/7)，等待人工评审当前 head SHA。
+
 ## 启动
 
 Python 3.11+，在项目根目录执行：

@@ -88,5 +88,28 @@ class SuiteTests(unittest.TestCase):
                 self.runner.validate(self.suite)
 
 
+    def test_event_analysis_default_and_independent_details(self):
+        suite = load_yaml((Path(__file__).parents[1] / "examples/event-analysis.yaml").read_text(encoding="utf-8"))
+        results = self.runner.run(suite)
+        self.assertEqual(results["advantages"]["parameters"], {"count": 2})
+        self.assertEqual(results["disadvantages"]["count"], 4)
+        self.assertTrue(results["disadvantages"]["uses_default"])
+        self.assertEqual(results["explanation"]["parameters"], {"detail_level": "detailed", "max_depth": 2})
+        self.assertTrue(results["explanationResult"]["accepted"])
+        self.assertIn("列举多少项", results["question"]["question"])
+
+    def test_effective_granularity_parameters_can_be_referenced(self):
+        suite = {"version": 1, "steps": [
+            {"id": "s", "operation": "create_session", "arguments": {"title": "parameters"}},
+            {"id": "m", "operation": "add_module", "arguments": {"session_id": {"$ref": "s"}, "description": "module"}},
+            {"id": "current", "operation": "get_granularity", "arguments": {"problem_id": {"$ref": "m"}, "direction": "explanation"}},
+            {"id": "override", "operation": "set_granularity", "arguments": {"problem_id": {"$ref": "m"}, "direction": "explanation",
+              "parameters": {"$ref": "current.parameters"}, "actor": "human"}},
+        ]}
+        result = self.runner.run(suite)
+        self.assertEqual(result["override"]["source"], "module")
+        self.assertEqual(result["override"]["parameters"], {"detail_level": "standard"})
+
+
 if __name__ == "__main__":
     unittest.main()

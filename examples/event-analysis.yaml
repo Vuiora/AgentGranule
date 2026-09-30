@@ -1,0 +1,49 @@
+# 离线演示，人工回复和结果均为示例数据。
+version: 1
+steps:
+  - id: session
+    operation: create_session
+    arguments: {title: 某事件的优缺与说明}
+  - id: module
+    operation: add_module
+    arguments: {session_id: {$ref: session}, description: 事件评估}
+  - id: default
+    operation: set_default_granularity
+    arguments:
+      session_id: {$ref: session}
+      direction: disadvantages
+      parameters: {count: 4, detail_level: standard}
+      actor: demo-human
+  - id: question
+    operation: request_granularity
+    arguments: {problem_id: {$ref: module}, direction: advantages}
+  - id: asked
+    operation: record_message
+    arguments: {session_id: {$ref: session}, role: assistant, content: {$ref: question.question}}
+  - id: reply
+    operation: record_message
+    arguments: {session_id: {$ref: session}, role: user, content: '示例回答：优点两项，缺点使用默认，说明详细一些。'}
+  - id: advantageControl
+    operation: set_granularity
+    arguments: {problem_id: {$ref: module}, direction: advantages, parameters: {count: 2}, actor: demo-human}
+  - id: explanationControl
+    operation: set_granularity
+    arguments: {problem_id: {$ref: module}, direction: explanation, parameters: {detail_level: detailed, max_depth: 2}, actor: demo-human}
+  - id: advantages
+    operation: prepare_plan
+    arguments: {problem_id: {$ref: module}, direction: advantages}
+  - id: disadvantages
+    operation: prepare_plan
+    arguments: {problem_id: {$ref: module}, direction: disadvantages}
+  - id: explanation
+    operation: prepare_plan
+    arguments: {problem_id: {$ref: module}, direction: explanation}
+  - id: advantageResult
+    operation: submit_result
+    arguments: {plan_id: {$ref: advantages.plan_id}, output: {items: [示例优点一, 示例优点二]}}
+  - id: disadvantageResult
+    operation: submit_result
+    arguments: {plan_id: {$ref: disadvantages.plan_id}, output: {items: [示例缺点一, 示例缺点二, 示例缺点三, 示例缺点四]}}
+  - id: explanationResult
+    operation: submit_result
+    arguments: {plan_id: {$ref: explanation.plan_id}, output: {text: 示例详细说明，语义详细程度由宿主执行。}}

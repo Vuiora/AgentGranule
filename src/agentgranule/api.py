@@ -10,10 +10,13 @@ from .core import GranuleError, Project
 __all__ = ["GranuleError", "Project", "SuiteRunner", "load_yaml"]
 
 _FIELDS = {
-    "set_granularity": {"problem_id", "direction", "count", "revision", "actor", "previous_count"},
+    "set_granularity": {"problem_id", "direction", "parameters", "count", "source", "revision", "actor", "previous_parameters", "previous_count"},
+    "get_granularity": {"problem_id", "direction", "parameters", "count", "source", "revision"},
+    "request_granularity": {"problem_id", "direction", "parameters", "count", "source", "revision", "question"},
+    "set_default_granularity": {"direction", "parameters", "revision", "actor", "previous_parameters"},
     "prepare_plan": {"plan_id", "session_id", "problem_id", "parent_id", "description", "direction",
-                     "count", "revision", "instruction"},
-    "submit_result": {"plan_id", "categories", "accepted", "error"},
+                     "count", "parameters", "source", "uses_default", "revision", "instruction"},
+    "submit_result": {"plan_id", "categories", "output", "accepted", "error"},
 }
 
 

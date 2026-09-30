@@ -25,9 +25,11 @@ class CoreTests(unittest.TestCase):
         result = self.project.submit_result(plan["plan_id"], ["甲", "乙", "丙"])
         self.assertTrue(result["accepted"])
 
-    def test_plan_requires_human_control(self):
-        with self.assertRaises(GranuleError):
-            self.project.prepare_plan(self.child)
+    def test_unconfigured_module_uses_identified_default(self):
+        plan = self.project.prepare_plan(self.child)
+        self.assertEqual(plan["count"], 3)
+        self.assertTrue(plan["uses_default"])
+        self.assertEqual(plan["source"], "builtin_default")
 
     def test_invalid_counts_do_not_change_control(self):
         for count in [0, -1, True, 2.5, "3"]:

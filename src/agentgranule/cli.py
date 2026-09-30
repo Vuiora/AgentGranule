@@ -10,10 +10,14 @@ from .core import GranuleError, Project
 OPERATIONS = {
     "create_session": ("title",),
     "add_problem": ("session_id", "description", "parent_id"),
+    "add_module": ("session_id", "description", "parent_id"),
     "record_message": ("session_id", "role", "content"),
-    "set_granularity": ("problem_id", "count", "actor"),
-    "prepare_plan": ("problem_id",),
-    "submit_result": ("plan_id", "categories"),
+    "set_granularity": ("problem_id", "count", "actor", "direction", "parameters"),
+    "get_granularity": ("problem_id", "direction"),
+    "request_granularity": ("problem_id", "direction"),
+    "set_default_granularity": ("session_id", "direction", "parameters", "actor"),
+    "prepare_plan": ("problem_id", "direction"),
+    "submit_result": ("plan_id", "categories", "output"),
     "history": ("session_id",),
 }
 

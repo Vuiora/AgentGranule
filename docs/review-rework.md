@@ -22,3 +22,16 @@
 - 数目、版本和结果基本格式可自动校验；其他参数交由外部 Agent 执行，未加入模型供应商、界面或语义质量判定。
 - 未合并任何层级分支，联合集成验收仍待人工批准后进行。
 - 原审阅批注保留，重新审批以各 PR 当前 head SHA 为准。
+
+## CI 证据
+
+返工代码在 Windows／Linux × Python 3.11／3.14 四组合均通过：
+
+| 分支代码 | CI |
+| --- | --- |
+| 框架 4271a75 | [通过](https://github.com/Vuiora/AgentGranule/actions/runs/36696018845) |
+| 集成 a486540 | [通过](https://github.com/Vuiora/AgentGranule/actions/runs/36696014137) |
+| 模块／YAML 4c14a60 | [通过](https://github.com/Vuiora/AgentGranule/actions/runs/36696007352) |
+| MCP d2b34de | [通过](https://github.com/Vuiora/AgentGranule/actions/runs/36696009169) |
+
+四个 PR 已恢复 OPEN；#3、#4 保持 draft。当前没有任何层级合并，main 仍为 0028c7c。框架的后续原文／交付文档提交会改变 head，审批以实际 PR 当前 head 为准。

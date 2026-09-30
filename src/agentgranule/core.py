@@ -213,17 +213,22 @@ class Project:
         with self._db:
             # Serialize read/modify/write so concurrent callers cannot reuse a revision.
             self._db.execute("BEGIN IMMEDIATE")
-            old = self._db.execute("SELECT * FROM module_controls WHERE problem_id=? AND direction=?",
-                                   (problem_id, direction)).fetchone()
-            revision = old["revision"] + 1 if old else 1
-            self._db.execute("""
-                INSERT INTO module_controls VALUES (?, ?, ?, ?)
-                ON CONFLICT(problem_id, direction) DO UPDATE SET parameters=excluded.parameters, revision=excluded.revision
-            """, (problem_id, direction, json.dumps(parameters, ensure_ascii=False), revision))
-            previous = json.loads(old["parameters"]) if old else None
-            control = {**self._effective(problem_id, direction), "actor": actor,
-                       "previous_parameters": previous, "previous_count": previous.get("count") if previous else None}
-            self._event(problem["session_id"], "granularity.changed", control)
+            return self._set_granularity_locked(problem_id, direction, parameters, actor)
+
+    def _set_granularity_locked(self, problem_id: str, direction: str, parameters: dict, actor: str) -> dict:
+        """Apply validated parameters while the caller holds BEGIN IMMEDIATE."""
+        problem = self._problem(problem_id)
+        old = self._db.execute("SELECT * FROM module_controls WHERE problem_id=? AND direction=?",
+                               (problem_id, direction)).fetchone()
+        revision = old["revision"] + 1 if old else 1
+        self._db.execute("""
+            INSERT INTO module_controls VALUES (?, ?, ?, ?)
+            ON CONFLICT(problem_id, direction) DO UPDATE SET parameters=excluded.parameters, revision=excluded.revision
+        """, (problem_id, direction, json.dumps(parameters, ensure_ascii=False), revision))
+        previous = json.loads(old["parameters"]) if old else None
+        control = {**self._effective(problem_id, direction), "actor": actor,
+                   "previous_parameters": previous, "previous_count": previous.get("count") if previous else None}
+        self._event(problem["session_id"], "granularity.changed", control)
         return control
 
     def prepare_plan(self, problem_id: str, direction: str = "classification") -> dict:

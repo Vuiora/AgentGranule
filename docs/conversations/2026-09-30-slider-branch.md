@@ -121,4 +121,4 @@ GitHub 已确认：当前账号 `Vuiora` 拥有源仓库，不能再拥有它的
 
 [示例预览](http://127.0.0.1:8765) · [PR #7](https://github.com/Vuiora/AgentGranule/pull/7)（待人工审批，未合并）。
 
-![滑块界面](/C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/docs/assets/granularity-slider.jpg)
+![滑块界面](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/docs/assets/granularity-slider.jpg)

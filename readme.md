@@ -4,7 +4,47 @@
 
 ## 当前状态
 
-本项目处于概念与仓库初始化阶段。目前仅建立项目说明、对话记录与协作规则，尚未实现应用、Agent、交互界面或自动记录功能。
+本项目进入 v0.1 框架阶段。`main` 保留已审批版本，当前开发在 `framework/blueprint`；模块／YAML 和 MCP 分别在功能分支中实现，按层级等待人工审批。
+
+框架包含 SQLite 对话与事件存储、问题／子问题、人工分类粒度、带版本的处理计划和结果数目校验。外部 Agent／模型负责实际分类，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
+
+蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。
+
+## 运行框架
+
+需要 Python 3.11+：
+
+```sh
+python -m venv .venv
+# 激活虚拟环境后执行
+python -m pip install -e .
+python -m unittest discover -s tests -v
+python -m agentgranule create_session '{"title":"问题 A"}'
+```
+
+命令行接收 JSON 对象，成功返回 `result`，输入错误返回 `error` 并以状态码 2 退出。Windows PowerShell 可通过 `--%` 传入 JSON，例如：
+
+```powershell
+.venv\Scripts\python.exe --% -m agentgranule create_session {\"title\":\"A\"}
+```
+
+```python
+from agentgranule import Project
+
+with Project() as project:
+    session = project.create_session("问题 A")
+    project.record_message(session, "user", "要求对子问题 B 分类，列举 3 个类别。")
+    a = project.add_problem(session, "A")
+    b = project.add_problem(session, "B", parent_id=a)
+    project.set_granularity(b, count=3, actor="human")
+    plan = project.prepare_plan(b)
+    # 外部 Agent 使用 plan 进行分类，将实际结果和可见消息回传。
+    project.record_message(session, "assistant", "类别：甲、乙、丙。")
+    project.submit_result(plan["plan_id"], ["甲", "乙", "丙"])
+    events = project.history(session)
+```
+
+默认数据库 `.agentgranule/project.sqlite3` 不提交到仓库。原文可能包含项目敏感内容，调用者应在写入前去除认证机密。
 
 ## 项目目标
 
@@ -29,8 +69,8 @@
 
 ## 对话记录
 
-- 当前阶段：在 `docs/conversations/` 中手工保存项目对话，保留原始表述，并明确区分原文与执行摘要。
-- 后续阶段：设计并实现对话自动记录；存储方式、数据结构、检索及回放机制尚未确定。
+- 研发阶段：在 `docs/conversations/` 中手工保存项目对话，保留原始表述，并明确区分原文与执行摘要。
+- 运行阶段：核心服务自动记录收到的原文消息及状态变更。宿主需显式传入用户／助手／工具／系统消息，当前不自动抓取外部聊天。
 - 对话记录与需求说明应同步维护，避免仅留下结论而丢失人工调整过程。
 - 对话记录范围是可见的交互内容，不包含 Agent 的隐藏思考、认证凭据或其他机密运行数据。
 
@@ -38,11 +78,12 @@
 
 ```text
 AgentGranule/
-├── readme.md
-├── AGENTS.md
-└── docs/
-    └── conversations/
-        └── 2026-09-30-initialization.md
+├── readme.md / AGENTS.md
+├── pyproject.toml
+├── src/agentgranule/       核心与 CLI
+├── tests/                 领域与接入验证
+├── .github/workflows/     跨平台 CI
+└── docs/                  蓝图、审批流程与研发对话
 ```
 
 ## 后续讨论方向
@@ -51,4 +92,4 @@ AgentGranule/
 2. 人工交互设置、修改粒度的流程，以及 Agent 对设置的执行与反馈。
 3. 对话与设置变更的记录方式。
 
-以上仅为待讨论内容，不代表已实现功能或已确定的技术方案。
+模块／YAML 与 MCP 以独立功能 PR 交付；下层功能完成审批和集成验收后，再请求合入框架及 main。

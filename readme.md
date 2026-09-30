@@ -4,7 +4,11 @@
 
 ## 当前状态
 
-本项目进入 v0.1 框架阶段。`main` 保留已审批版本，当前开发在 `framework/blueprint`；模块／YAML 和 MCP 分别在功能分支中实现，按层级等待人工审批。
+第一轮算法在 `feature/algorithm-round-1` 开发：依赖排序、粒度约束编译、执行调度与局部重算。算法接口与离线演示见 [docs/algorithms-round-1.md](docs/algorithms-round-1.md)。前置 #1–#4 已由人工合并；下表保留其历史审批层级，不表示当前仍待审批。
+
+[第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 等待人工审批；41 项本地测试与四组合 CI 通过。
+
+`main` 已由维护者合并前置框架 PR，本轮开发在 `feature/algorithm-round-1`。算法通过 Python 模块调用；当前 main 的实际文件树包含核心服务，适配器的历史 PR 与当前文件树差异见算法文档。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
 
@@ -12,10 +16,10 @@
 
 | PR | 合并方向 | 状态 |
 | --- | --- | --- |
-| [#1 模块／YAML](https://github.com/Vuiora/AgentGranule/pull/1) | feature/module-yaml-api → integration/extensions | 等待人工审批 |
-| [#2 MCP](https://github.com/Vuiora/AgentGranule/pull/2) | feature/mcp-adapter → integration/extensions | 等待人工审批 |
-| [#3 集成](https://github.com/Vuiora/AgentGranule/pull/3) | integration/extensions → framework/blueprint | draft，等待下层审批与联合验收 |
-| [#4 框架](https://github.com/Vuiora/AgentGranule/pull/4) | framework/blueprint → main | draft，等待上层交付范围完整 |
+| [#1 模块／YAML](https://github.com/Vuiora/AgentGranule/pull/1) | feature/module-yaml-api → integration/extensions | 已由人工合并 |
+| [#2 MCP](https://github.com/Vuiora/AgentGranule/pull/2) | feature/mcp-adapter → integration/extensions | 已由人工合并 |
+| [#3 集成](https://github.com/Vuiora/AgentGranule/pull/3) | integration/extensions → main（维护者调整） | 已由人工合并 |
+| [#4 框架](https://github.com/Vuiora/AgentGranule/pull/4) | framework/blueprint → main | 已由人工合并 |
 
 本轮概念修正、验证和边界见 [docs/review-rework.md](docs/review-rework.md)；首轮历史证据保存在 [docs/delivery-status.md](docs/delivery-status.md)。
 
@@ -99,4 +103,4 @@ AgentGranule/
 2. 人工交互设置、修改粒度的流程，以及 Agent 对设置的执行与反馈。
 3. 对话与设置变更的记录方式。
 
-模块／YAML 与 MCP 以独立功能 PR 交付；下层功能完成审批和集成验收后，再请求合入框架及 main。
+第一轮算法以独立 PR 申请合入 main，审批关联当前 head SHA；测试通过不代替人工批准。

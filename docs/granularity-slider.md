@@ -2,6 +2,8 @@
 
 按 [PR #7 的维护者批注](https://github.com/Vuiora/AgentGranule/pull/7#issuecomment-5912236674) 返工：取消网页界面，改为原生小弹窗，优化配色、留白、提示和按钮，只显示详细程度滑块，不展示列举数目模块。#7 已关闭且未合并；返工仍在 codex/granularity-slider 分支。
 
+[返工 PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已提交，等待人工审批当前 head SHA。
+
 ## 使用
 
 Python 3.11+，运行环境须包含 Tkinter；本地验证所用 Python 已支持。执行：

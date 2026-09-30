@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agentgranule": {
+      "command": "C:/absolute/path/to/AgentGranule/.venv/Scripts/python.exe",
+      "args": ["-m", "agentgranule.mcp_server", "--database", "C:/absolute/path/to/AgentGranule/.agentgranule/project.sqlite3"]
+    }
+  }
+}

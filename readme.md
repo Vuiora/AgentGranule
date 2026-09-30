@@ -1,12 +1,12 @@
 # AgentGranule
 
-通过人工交互调节 Agent 在各个处理方向上的粒度，实现项目客制化，并记录完整对话过程。
+通过人工交互调节各模块处理问题的详细程度，实现项目客制化，并记录完整对话过程。
 
 ## 当前状态
 
 本项目进入 v0.1 框架阶段。`main` 保留已审批版本，当前开发在 `framework/blueprint`；模块／YAML 和 MCP 分别在功能分支中实现，按层级等待人工审批。
 
-框架包含 SQLite 对话与事件存储、问题／子问题、人工分类粒度、带版本的处理计划和结果数目校验。外部 Agent／模型负责实际分类，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
+框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
 
 蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。
 
@@ -17,7 +17,7 @@
 | [#3 集成](https://github.com/Vuiora/AgentGranule/pull/3) | integration/extensions → framework/blueprint | draft，等待下层审批与联合验收 |
 | [#4 框架](https://github.com/Vuiora/AgentGranule/pull/4) | framework/blueprint → main | draft，等待上层交付范围完整 |
 
-代码验证与待审批状态见 [docs/delivery-status.md](docs/delivery-status.md)。
+本轮概念修正、验证和边界见 [docs/review-rework.md](docs/review-rework.md)；首轮历史证据保存在 [docs/delivery-status.md](docs/delivery-status.md)。
 
 ## 运行框架
 
@@ -41,15 +41,16 @@ python -m agentgranule create_session '{"title":"问题 A"}'
 from agentgranule import Project
 
 with Project() as project:
-    session = project.create_session("问题 A")
-    project.record_message(session, "user", "要求对子问题 B 分类，列举 3 个类别。")
-    a = project.add_problem(session, "A")
-    b = project.add_problem(session, "B", parent_id=a)
-    project.set_granularity(b, count=3, actor="human")
-    plan = project.prepare_plan(b)
-    # 外部 Agent 使用 plan 进行分类，将实际结果和可见消息回传。
-    project.record_message(session, "assistant", "类别：甲、乙、丙。")
-    project.submit_result(plan["plan_id"], ["甲", "乙", "丙"])
+    session = project.create_session("分析某事件的优缺")
+    module = project.add_module(session, "事件评估")
+    question = project.request_granularity(module, direction="advantages")
+    # 宿主向用户呈现 question['question'] 并记录真实回答。
+    # 以下数值与文本仅为调用示例：优点 2 项，缺点保留默认 3 项。
+    project.set_granularity(module, actor="human", direction="advantages", parameters={"count": 2})
+    project.set_granularity(module, actor="human", direction="explanation", parameters={"detail_level": "detailed"})
+    plan = project.prepare_plan(module, direction="advantages")
+    default_plan = project.prepare_plan(module, direction="disadvantages")
+    project.submit_result(plan["plan_id"], output={"items": ["示例优点一", "示例优点二"]})
     events = project.history(session)
 ```
 
@@ -58,23 +59,20 @@ with Project() as project:
 ## 项目目标
 
 - **记录所有对话内容**：保留用户与 Agent 的交互、需求澄清、人工设置、调整过程及结果，让项目的形成过程可追溯。
-- **人工控制处理方向粒度**：用户可以针对具体问题、子问题及其处理方向设置粒度。
+- **人工控制处理方向粒度**：问题划分为模块后，用户分别控制每个模块各方向的处理力度，也可以使用可配置的默认值。
 - **实现客制化**：Agent 的处理方式与输出细节由人工交互控制的粒度设置驱动。
 
 ## 什么是处理方向粒度
 
-处理方向粒度，是人在指定问题及其处理方式下，对处理细节或规模所设置的控制参数。
+**粒度是处理问题的详细程度。** 将一个问题划分为多个模块，每个模块的处理力度可以不同；在一个模块内，不同处理方向也可以分别设置参数。
 
-例如：
+例如，分析某个事件的优缺时，询问用户希望分别列举多少个优点和缺点，就是把抽象粒度落实为具体数目。解释模块的粒度也可以是简要／详细程度或展开深度。
 
-1. 有一个问题 **A**，其中包含子问题 **B**。
-2. 用户要求 Agent 对 **B** 使用**分类**的方式进行描述。
-3. 用户人工设置该分类问题的**列举数目**。
-4. 这个列举数目就是此处的**问题处理方向粒度**。
+最初的 **A／子问题 B／分类数目** 是解释这一概念的例子，不规定真实项目必须采用这种任务结构，也不把粒度限定为分类。
 
-若用户将列举数目设为 3，Agent 应按该设置组织分类描述；当用户将其改为 5，输出应随设置调整。这里的数目仅用于说明概念，具体约束与交互机制留待后续设计。
+实现中的参数对象为 `parameters`：`count` 是列举数目，`detail_level` 表示详细程度，`max_depth` 表示展开深度；可附加宿主理解的其他 JSON 参数。框架负责存储与传递，当前自动校验数目、版本和结果基本格式；其他参数的语义执行由外部 Agent 承担。
 
-粒度应关联具体的问题或子问题及其处理方向，而不只是整个会话的统一输出长度。其他处理方向及其粒度参数尚待讨论。
+默认优先级为：模块人工覆盖 > 项目方向默认 > 内置建议。分类／列举／优点／缺点方向初始建议为 3 项、standard 详细程度；其他方向为 standard。默认值可通过 `set_default_granularity` 修改，初始建议不代表用户已批准或回答。`request_granularity` 向宿主提供询问及建议来源。
 
 ## 对话记录
 

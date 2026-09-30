@@ -21,17 +21,25 @@ OPERATIONS = {
 def main(argv=None):
     parser = argparse.ArgumentParser(description="AgentGranule local framework")
     parser.add_argument("--database", default=".agentgranule/project.sqlite3")
-    parser.add_argument("operation", choices=OPERATIONS)
-    parser.add_argument("arguments", help="JSON object with the operation's named arguments")
+    parser.add_argument("operation", choices=[*OPERATIONS, "run-suite"])
+    parser.add_argument("arguments", help="JSON arguments, or a YAML file path for run-suite")
     args = parser.parse_args(argv)
     try:
-        arguments = json.loads(args.arguments)
-        if not isinstance(arguments, dict) or set(arguments) - set(OPERATIONS[args.operation]):
-            raise GranuleError("Invalid operation arguments")
-        with Project(args.database) as project:
-            result = getattr(project, args.operation)(**arguments)
+        if args.operation == "run-suite":
+            from pathlib import Path
+            from .api import SuiteRunner, load_yaml
+
+            suite = load_yaml(Path(args.arguments).read_text(encoding="utf-8"))
+            with Project(args.database) as project:
+                result = SuiteRunner(project).run(suite)
+        else:
+            arguments = json.loads(args.arguments)
+            if not isinstance(arguments, dict) or set(arguments) - set(OPERATIONS[args.operation]):
+                raise GranuleError("Invalid operation arguments")
+            with Project(args.database) as project:
+                result = getattr(project, args.operation)(**arguments)
         print(json.dumps({"result": result}, ensure_ascii=False))
         return 0
-    except (GranuleError, TypeError, json.JSONDecodeError) as exc:
+    except (GranuleError, TypeError, json.JSONDecodeError, OSError, UnicodeError) as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         return 2

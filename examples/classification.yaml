@@ -1,0 +1,48 @@
+version: 1
+steps:
+  - id: session
+    operation: create_session
+    arguments:
+      title: 问题 A 的分类控制
+  - id: request
+    operation: record_message
+    arguments:
+      session_id: {$ref: session}
+      role: user
+      content: 请对子问题 B 分类，列举三个类别。
+  - id: a
+    operation: add_problem
+    arguments:
+      session_id: {$ref: session}
+      description: A
+  - id: b
+    operation: add_problem
+    arguments:
+      session_id: {$ref: session}
+      parent_id: {$ref: a}
+      description: B
+  - id: control
+    operation: set_granularity
+    arguments:
+      problem_id: {$ref: b}
+      count: 3
+      actor: human
+  - id: plan
+    operation: prepare_plan
+    arguments:
+      problem_id: {$ref: b}
+  - id: answer
+    operation: record_message
+    arguments:
+      session_id: {$ref: session}
+      role: assistant
+      content: 示例分类结果：甲、乙、丙（演示数据）。
+  - id: result
+    operation: submit_result
+    arguments:
+      plan_id: {$ref: plan.plan_id}
+      categories: [甲, 乙, 丙]
+  - id: history
+    operation: history
+    arguments:
+      session_id: {$ref: session}

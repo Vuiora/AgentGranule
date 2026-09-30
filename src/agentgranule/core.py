@@ -119,6 +119,8 @@ class Project:
             raise GranuleError("count must be a positive integer")
         _text(actor, "actor")
         with self._db:
+            # Serialize read/modify/write so concurrent callers cannot reuse a revision.
+            self._db.execute("BEGIN IMMEDIATE")
             old = self._db.execute("SELECT * FROM controls WHERE problem_id = ?", (problem_id,)).fetchone()
             revision = old["revision"] + 1 if old else 1
             self._db.execute("""
@@ -156,17 +158,19 @@ class Project:
             json.dumps(categories, allow_nan=False)
         except (TypeError, ValueError) as exc:
             raise GranuleError("categories must be JSON-serializable") from exc
-        control = self._db.execute("SELECT revision FROM controls WHERE problem_id = ?",
-                                   (plan["problem_id"],)).fetchone()
-        error = None
-        if control["revision"] != plan["revision"]:
-            error = "Granularity changed; prepare a new plan"
-        elif not isinstance(categories, list) or any(not isinstance(c, str) or not c.strip() for c in categories):
-            error = "categories must be a list of non-empty strings"
-        elif len(categories) != plan["count"]:
-            error = f"Expected exactly {plan['count']} categories"
-        result = {"plan_id": plan_id, "categories": categories, "accepted": error is None, "error": error}
         with self._db:
+            # A human update cannot interleave revision validation and result acceptance.
+            self._db.execute("BEGIN IMMEDIATE")
+            control = self._db.execute("SELECT revision FROM controls WHERE problem_id = ?",
+                                       (plan["problem_id"],)).fetchone()
+            error = None
+            if control["revision"] != plan["revision"]:
+                error = "Granularity changed; prepare a new plan"
+            elif not isinstance(categories, list) or any(not isinstance(c, str) or not c.strip() for c in categories):
+                error = "categories must be a list of non-empty strings"
+            elif len(categories) != plan["count"]:
+                error = f"Expected exactly {plan['count']} categories"
+            result = {"plan_id": plan_id, "categories": categories, "accepted": error is None, "error": error}
             self._event(plan["session_id"], "result.submitted", result)
         if error:
             raise GranuleError(error)

@@ -239,10 +239,10 @@ def show_design(service, analysis_id):
     report = None
     selected = None
     loading = False
-    camera = {"yaw": 0.6, "pitch": -0.35, "zoom": 1.0}
+    camera = {"yaw": 0.6, "pitch": 0.6, "roll": -0.97, "zoom": 1.0}
     rendered = {"faces": [], "centers": [], "scene": None, "image": None, "redraw": None}
     root = tk.Tk()
-    root.title("AgentGranule · 紧凑 3D 模块与 100% 占比")
+    root.title("AgentGranule · 立体模块与100%占比")
     screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
     window_width = min(1120, max(480, screen_width - 80))
     window_height = min(780, max(420, screen_height - 120))
@@ -399,6 +399,7 @@ def show_design(service, analysis_id):
         colors = {key: REGION_COLORS[index % len(REGION_COLORS)] for index, key in enumerate(ids)}
         scene = render_treemap_scene(rectangles, camera, width, height,
                                     pixel_step=6 if drag["active"] else 3,
+                                    height_mode=True,
                                     colors={module["id"]: colors[module["id"]]
                                             if direction_var.get() in module["directions"] else (150, 161, 157)
                                             for module in modules()})
@@ -436,6 +437,10 @@ def show_design(service, analysis_id):
             canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point[:2]),
                                   fill="", outline="#285a4c" if face["module_id"] == selected else "#ffffff",
                                   width=2 if face["module_id"] == selected else 1)
+        for face in scene.get("height_faces", []):
+            canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point[:2]),
+                                  fill="", outline="#285a4c" if face["module_id"] == selected else "#dce9e4",
+                                  width=1, tags=("height-edge", face["module_id"]))
         rendered["labels"] = []
         from tkinter import font as tkfont
         label_font = tkfont.Font(root=root, family="Microsoft YaHei UI", size=9)
@@ -488,7 +493,7 @@ def show_design(service, analysis_id):
         preview_note = ("全部力度为 0，临时等分显示；原值保持 0。" if allocation_state["zero_total"] else
                         "待分配模块按 0.50 临时预览；应用后才计入力度。" if allocation_state["provisional"] else
                         "无适用模块，总占比 0%。" if not allocation_state["applicable"] else "")
-        legend_var.set("力度是权重，面积和占比归一化；提高一个模块，其余显示比例下降。\n" +
+        legend_var.set("力度是权重；占比提高时面积与3D高度同步增大，其余模块同步变小。\n" +
                        (preview_note or "0 占比保留底部选择标记；虚线为父关系，箭头为依赖。"))
         rendered["faces"] = faces
         rendered["centers"] = scene["centers"]
@@ -809,7 +814,7 @@ def show_design(service, analysis_id):
 
     ttk.Button(bottom, text="取消", command=cancel).pack(side="left")
     ttk.Button(bottom, text="重新加载", command=load_state).pack(side="left", padx=8)
-    ttk.Button(bottom, text="重置视角", command=lambda: (camera.update(yaw=0.6, pitch=-0.35, zoom=1.0), schedule_draw())).pack(side="left")
+    ttk.Button(bottom, text="重置视角", command=lambda: (camera.update(yaw=0.6, pitch=0.6, roll=-0.97, zoom=1.0), schedule_draw())).pack(side="left")
     confirm = ttk.Button(bottom, text="确认模块清单 →", command=confirm_phase)
     confirm.pack(side="right")
     tree.bind("<<TreeviewSelect>>", lambda _: select_module(tree.selection()[0]) if tree.selection() else None)

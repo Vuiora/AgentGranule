@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
+from fractions import Fraction
 
 from .core import GranuleError, _design_effort_units
+from .heights import box_vertices, maximum_height, proportional_heights
 
 MIN_VOLUME = 0.125
 MAX_VOLUME = 8.0
@@ -33,6 +35,7 @@ _NORMALS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0),
 BACKGROUND = (240, 245, 241)
 MAX_RENDER_WIDTH = 320
 MAX_RENDER_HEIGHT = 240
+COLUMN_FOOTPRINT_RATIO = 0.60
 
 
 def region_volume(effort):
@@ -329,9 +332,96 @@ def _inside_polygon(point, polygon):
     return all(v >= -1e-8 for v in cross) or all(v <= 1e-8 for v in cross)
 
 
+def _clip_projected_face(points, boundary):
+    """Clip a projected 3D face to its own allocation, retaining depth.
+
+    Orthographic projection makes depth linear on every edge. Interpolating
+    all three screen coordinates therefore preserves the actual face plane.
+    The clipping mask is the module's common floor polygon, so neither its
+    coloured surfaces nor the returned native Canvas edges enter a neighbour.
+    """
+    signed_area = sum(a[0] * b[1] - a[1] * b[0]
+                      for a, b in zip(boundary, boundary[1:] + boundary[:1]))
+    if abs(signed_area) < 1e-10:
+        return []
+    orientation = 1 if signed_area > 0 else -1
+    polygon = list(points)
+    for a, b in zip(boundary, boundary[1:] + boundary[:1]):
+        def distance(point):
+            return orientation * ((b[0] - a[0]) * (point[1] - a[1]) -
+                                  (b[1] - a[1]) * (point[0] - a[0]))
+
+        if not polygon:
+            break
+        clipped = []
+        previous = polygon[-1]
+        previous_distance = distance(previous)
+        for current in polygon:
+            current_distance = distance(current)
+            previous_inside, current_inside = previous_distance >= -1e-9, current_distance >= -1e-9
+            if previous_inside != current_inside:
+                fraction = previous_distance / (previous_distance - current_distance)
+                clipped.append(tuple(previous[axis] + fraction * (current[axis] - previous[axis])
+                                     for axis in range(3)))
+            if current_inside:
+                clipped.append(current)
+            previous, previous_distance = current, current_distance
+        polygon = clipped
+    area = abs(sum(a[0] * b[1] - a[1] * b[0]
+                   for a, b in zip(polygon, polygon[1:] + polygon[:1])))
+    return polygon if len(polygon) >= 3 and area > 1e-9 else []
+
+
+def _projected_depth_plane(points):
+    """Return screen-plane depth coefficients for a non-degenerate face."""
+    x0, y0, z0 = points[0]
+    for index in range(1, len(points) - 1):
+        dx1, dy1, dz1 = (points[index][axis] - points[0][axis] for axis in range(3))
+        dx2, dy2, dz2 = (points[index + 1][axis] - points[0][axis] for axis in range(3))
+        denominator = dx1 * dy2 - dy1 * dx2
+        if abs(denominator) > 1e-10:
+            x_coefficient = (dz1 * dy2 - dz2 * dy1) / denominator
+            y_coefficient = (dx1 * dz2 - dx2 * dz1) / denominator
+            return x_coefficient, y_coefficient, z0 - x_coefficient * x0 - y_coefficient * y0
+    return None
+
+
+def _clip_depth_to_floor(points, floor_points):
+    """Keep only real column surfaces in front of the opaque common floor."""
+    plane = _projected_depth_plane(floor_points)
+    if plane is None or not points:
+        return []
+
+    def distance(point):
+        return plane[0] * point[0] + plane[1] * point[1] + plane[2] - point[2]
+
+    polygon = []
+    previous, previous_distance = points[-1], distance(points[-1])
+    for current in points:
+        current_distance = distance(current)
+        previous_inside, current_inside = previous_distance >= -1e-9, current_distance >= -1e-9
+        if previous_inside != current_inside:
+            fraction = previous_distance / (previous_distance - current_distance)
+            polygon.append(tuple(previous[axis] + fraction * (current[axis] - previous[axis])
+                                 for axis in range(3)))
+        if current_inside:
+            polygon.append(current)
+        previous, previous_distance = current, current_distance
+    area = abs(sum(a[0] * b[1] - a[1] * b[0]
+                   for a, b in zip(polygon, polygon[1:] + polygon[:1])))
+    return polygon if len(polygon) >= 3 and area > 1e-9 else []
+
+
+def _orthographic_rotate(point, camera, rotation):
+    """Apply the shared treemap yaw/pitch and optional view-axis roll."""
+    x, y, z = _rotate(point, rotation)
+    cosine, sine = math.cos(camera.get("roll", 0.0)), math.sin(camera.get("roll", 0.0))
+    return x * cosine - y * sine, x * sine + y * cosine, z
+
+
 def _orthographic_project(point, camera, rotation):
     wx, wy = camera["world_center"]
-    x, y, z = _rotate((point[0] - wx, point[1] - wy, point[2]), rotation)
+    x, y, z = _orthographic_rotate((point[0] - wx, point[1] - wy, point[2]), camera, rotation)
     return (camera["center"][0] + x * camera["focal"],
             camera["center"][1] - y * camera["focal"], camera["distance"] + z)
 
@@ -344,6 +434,8 @@ def _treemap_point(point, scene):
         return None
     sx = (point[0] - camera["center"][0]) / camera["focal"]
     sy_screen = -(point[1] - camera["center"][1]) / camera["focal"]
+    cosine, sine = math.cos(camera.get("roll", 0.0)), math.sin(camera.get("roll", 0.0))
+    sx, sy_screen = sx * cosine + sy_screen * sine, -sx * sine + sy_screen * cosine
     z = scene["front_z"]
     x = (sx - sy * z) / cy
     y = (sy_screen - sp * sy * x + sp * cy * z) / cp
@@ -372,7 +464,8 @@ def _hit_treemap_regions(point, scene, min_target):
     return (min(targets)[1],) if targets else ()
 
 
-def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors=None):
+def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors=None,
+                         *, height_mode=False):
     """Render one partitioned 3D plate with exactly proportional face areas.
 
     ``rectangles`` maps module IDs to ``(x0, y0, x1, y1)`` in one world XY
@@ -384,15 +477,27 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
     area. The host should use separate label targets to select zero shares on a
     shared border; picking a positive face always selects its allocated area.
 
-    Camera options include yaw/pitch, zoom, center and optional explicit focal
+    Camera options include yaw/pitch/roll, zoom, center and optional explicit focal
     (pixels per world unit); default fitting margins are 24px horizontal/40px
     vertical. Returned fields match ``render_scene``. ``faces`` contains only
     allocation faces; the shared plate's visible thickness is ``base_faces``.
+    With ``height_mode=True``, each module has a real Z extrusion proportional
+    to its floor-area share. Each column's footprint is inset by one fixed
+    linear factor, preserving the relative footprint areas while separating
+    its visible top and sides from the shared floor. Extruded surfaces remain
+    clipped to their own projected floor allocation so neighbouring modules
+    stay visible. The fixed floor bounds determine the visible camera fit;
+    the maximum legal height reserves depth independently of current shares.
+    ``height_faces`` exposes these clipped surfaces
+    for native outlines; ``height_vertices`` retains the true world geometry.
+    Picking and ``faces``/``centers`` always describe the allocated floor area.
     This pure renderer does not apply effort values or approve any setting.
     """
     if (type(width) is not int or type(height) is not int or width <= 0 or height <= 0 or
             type(pixel_step) is not int or not 1 <= pixel_step <= 16):
         raise GranuleError("Diagram dimensions must be positive integers and pixel_step must be 1–16")
+    if type(height_mode) is not bool:
+        raise GranuleError("Treemap height_mode must be a boolean")
     rectangles = _treemap_rectangles(rectangles)
     if colors is None:
         colors = {}
@@ -402,6 +507,9 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
     pixel_step = max(pixel_step, math.ceil(width / MAX_RENDER_WIDTH), math.ceil(height / MAX_RENDER_HEIGHT))
     camera_options = dict(camera)
     camera = _camera(camera_options, width, height)
+    camera["roll"] = camera_options.get("roll", 0.0)
+    if type(camera["roll"]) not in (int, float) or not math.isfinite(camera["roll"]):
+        raise GranuleError("Treemap camera roll must be finite")
     for option, default in (("zoom", 1.0), ("margin_x", 24.0), ("margin_y", 40.0)):
         value = camera_options.get(option, default)
         if type(value) not in (int, float) or not math.isfinite(value) or value < 0 or (option == "zoom" and value == 0):
@@ -420,12 +528,25 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
     camera["projection"] = "orthographic"
     rotation = _rotation(camera)
     thickness = max(right - left, bottom - top, 1e-3) * 0.035
+    front_z = -thickness / 2 if rotation[0] * rotation[2] >= 0 else thickness / 2
+    # World -Z is always up. Rotation changes the view, never the model's
+    # extrusion direction; the opaque floor can hide it from the back.
+    height_base_z = -thickness / 2
+    reserved_height = maximum_height(max(right - left, bottom - top, 1e-3)) if height_mode else 0.0
     vertices = [(x, y, z) for z in (-thickness / 2, thickness / 2)
                 for x, y in ((left, top), (right, top), (right, bottom), (left, bottom))]
-    rotated = [_rotate((x - camera["world_center"][0], y - camera["world_center"][1], z), rotation)
-               for x, y, z in vertices]
-    camera["distance"] = max(camera["distance"], 1 + max(abs(p[2]) for p in rotated))
+    reserved_low = height_base_z - reserved_height
+    reserved_high = thickness / 2
+    reserved_vertices = [(x, y, z) for z in (reserved_low, reserved_high)
+                         for x, y in ((left, top), (right, top), (right, bottom), (left, bottom))]
+    reserved_rotated = [_orthographic_rotate((x - camera["world_center"][0], y - camera["world_center"][1], z),
+                                             camera, rotation) for x, y, z in reserved_vertices]
+    camera["distance"] = max(camera["distance"], 1 + max(abs(p[2]) for p in reserved_rotated))
     if "focal" not in camera_options:
+        # Every visible column fragment is masked to this fixed floor. Fitting
+        # the unseen full column envelope wastes space and flattens the scene.
+        rotated = [_orthographic_rotate((x - camera["world_center"][0], y - camera["world_center"][1], z),
+                                       camera, rotation) for x, y, z in vertices]
         extent_x = max((abs(p[0]) for p in rotated), default=0)
         extent_y = max((abs(p[1]) for p in rotated), default=0)
         camera["focal"] = min(max(1.0, width / 2 - camera["margin_x"]) / max(extent_x, 1e-10),
@@ -433,9 +554,16 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
     camera["focal"] *= camera["zoom"]
     if not math.isfinite(camera["focal"]) or not math.isfinite(camera["distance"]):
         raise GranuleError("Treemap camera must produce finite projected coordinates")
-    front_z = -thickness / 2 if rotation[0] * rotation[2] >= 0 else thickness / 2
     projected = [_orthographic_project(point, camera, rotation) for point in vertices]
-    prepared, centers, faces, base_faces = [], [], [], []
+    # Exact normalized area fractions avoid decimal-sum drift in the shared
+    # pure height helper, including arbitrary non-overlapping input cells.
+    areas = {key: Fraction(str(r[2] - r[0])) * Fraction(str(r[3] - r[1]))
+             for key, r in rectangles.items()}
+    total_area = sum(areas.values(), Fraction(0))
+    shares = {key: area / total_area if total_area else Fraction(0) for key, area in areas.items()}
+    heights = (proportional_heights(shares, max(right - left, bottom - top, 1e-3))
+               if height_mode else {key: 0.0 for key in rectangles})
+    prepared, centers, faces, base_faces, height_faces, height_vertices = [], [], [], [], [], {}
     for key, rectangle in rectangles.items():
         x0, y0, x1, y1 = rectangle
         center = ((x0 + x1) / 2, (y0 + y1) / 2, front_z)
@@ -446,10 +574,43 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
         bbox = (min(p[0] for p in points), min(p[1] for p in points),
                 max(p[0] for p in points), max(p[1] for p in points))
         prepared.append({"module_id": key, "rectangle": rectangle, "center": center,
-                         "bbox": bbox, "colors": (prepared_colors[key],), "points": points})
+                         "bbox": bbox, "colors": (prepared_colors[key],), "points": points,
+                         "height": heights[key]})
         if x1 > x0 and y1 > y0:
             faces.append({"module_id": key, "points": points,
                           "depth": sum(p[2] for p in points) / 4})
+        inset_x = (x1 - x0) * (1 - COLUMN_FOOTPRINT_RATIO) / 2
+        inset_y = (y1 - y0) * (1 - COLUMN_FOOTPRINT_RATIO) / 2
+        column_rectangle = (x0 + inset_x, y0 + inset_y, x1 - inset_x, y1 - inset_y)
+        prepared[-1]["column_rectangle"] = column_rectangle
+        column = box_vertices(column_rectangle, heights[key])
+        column = tuple((x, y, height_base_z - z) for x, y, z in column)
+        height_vertices[key] = column
+        prepared[-1]["height_vertices"] = column
+        if not column:
+            continue
+        column_projection = [_orthographic_project(point, camera, rotation) for point in column]
+        # Bottom faces belong to the common floor. Only the top and the four
+        # outward-facing walls can contribute to the isolated height preview.
+        surface_faces = [("top", (4, 5, 6, 7), (0, 0, -1))]
+        surface_faces.extend(("side", (index, (index + 1) % 4, (index + 1) % 4 + 4, index + 4), normal)
+                             for index, normal in enumerate(((0, -1, 0), (1, 0, 0), (0, 1, 0), (-1, 0, 0))))
+        for surface, indices, normal in surface_faces:
+            rotated_normal = _rotate(normal, rotation)
+            if rotated_normal[2] >= -1e-10:
+                continue
+            clipped = _clip_projected_face([column_projection[index] for index in indices], points)
+            clipped = _clip_depth_to_floor(clipped, points)
+            if not clipped:
+                continue
+            light = max(0.0, sum(a * b for a, b in zip((-0.3, 0.45, -1), rotated_normal)) / 1.137)
+            if surface == "top":
+                color = tuple(round(255 * 0.10 + channel * 0.90) for channel in prepared_colors[key])
+            else:
+                shade = 0.46 + 0.25 * light
+                color = tuple(round(channel * shade) for channel in prepared_colors[key])
+            height_faces.append({"module_id": key, "points": clipped, "surface": surface,
+                                 "depth": sum(p[2] for p in clipped) / len(clipped), "color": color})
     # Only the plate's four exterior walls have thickness. Internal module
     # borders share one surface and cannot cover neighbouring allocations.
     for index, normal in enumerate(((0, -1, 0), (1, 0, 0), (0, 1, 0), (-1, 0, 0))):
@@ -460,11 +621,18 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
     base_faces.sort(key=lambda face: face["depth"], reverse=True)
     out_width = (width + pixel_step - 1) // pixel_step
     out_height = (height + pixel_step - 1) // pixel_step
+    actual_height = max(heights.values(), default=0.0)
+    height_low = height_base_z - actual_height
+    height_high = thickness / 2
     scene = {"width": out_width, "height": out_height, "pixel_step": pixel_step,
              "canvas_width": width, "canvas_height": height, "centers": centers,
              "faces": faces, "base_faces": base_faces, "regions": prepared,
              "bounds": ((left, top, -thickness / 2), (right, bottom, thickness / 2)) if rectangles else None,
-             "camera": camera, "projection": "orthographic", "front_z": front_z}
+             "camera": camera, "projection": "orthographic", "front_z": front_z,
+             "height_mode": height_mode, "height_faces": height_faces, "height_vertices": height_vertices,
+             "reserved_height": reserved_height, "height_base_z": height_base_z,
+             "height_bounds": ((left, top, height_low), (right, bottom, height_high)) if rectangles else None,
+             "reserved_bounds": ((left, top, reserved_low), (right, bottom, reserved_high)) if rectangles else None}
     pixels = bytearray(BACKGROUND * (out_width * out_height))
     for face in base_faces if faces else ():
         polygon = face["points"]
@@ -484,7 +652,8 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
         if x1 <= x0 or y1 <= y0 or abs(rotation[0] * rotation[2]) < 1e-10:
             continue
         bx0, by0, bx1, by1 = region["bbox"]
-        color = bytes(round(old * 0.22 + channel * 0.78)
+        floor_alpha = 0.30 if height_mode else 0.78
+        color = bytes(round(old * (1 - floor_alpha) + channel * floor_alpha)
                       for old, channel in zip(BACKGROUND, region["colors"][0]))
         for y in range(max(0, int(by0 // pixel_step)), min(out_height - 1, int(by1 // pixel_step)) + 1):
             for x in range(max(0, int(bx0 // pixel_step)), min(out_width - 1, int(bx1 // pixel_step)) + 1):
@@ -493,5 +662,33 @@ def render_treemap_scene(rectangles, camera, width, height, pixel_step=3, colors
                 if world is not None and x0 <= world[0] < x1 and y0 <= world[1] < y1:
                     offset = (y * out_width + x) * 3
                     pixels[offset:offset + 3] = color
+    # Render only real surfaces whose projected fragment belongs to that same
+    # module's floor mask. A depth buffer chooses its visible top or side wall;
+    # no adjacent column can repaint this allocation, even in rear views.
+    depths = [math.inf] * (out_width * out_height)
+    owner_cache = {}
+    for face in height_faces:
+        polygon = face["points"]
+        plane = _projected_depth_plane(polygon)
+        if plane is None:
+            continue
+        color = bytes(round(old * 0.10 + channel * 0.90)
+                      for old, channel in zip(BACKGROUND, face["color"]))
+        for y in range(max(0, int(min(p[1] for p in polygon) // pixel_step)),
+                       min(out_height - 1, int(max(p[1] for p in polygon) // pixel_step)) + 1):
+            for x in range(max(0, int(min(p[0] for p in polygon) // pixel_step)),
+                           min(out_width - 1, int(max(p[0] for p in polygon) // pixel_step)) + 1):
+                point = (min(width - 0.5, (x + 0.5) * pixel_step), min(height - 0.5, (y + 0.5) * pixel_step))
+                if not _inside_polygon(point, polygon):
+                    continue
+                index = y * out_width + x
+                if index not in owner_cache:
+                    owner_cache[index] = _treemap_hit_key(_treemap_point(point, scene), scene)
+                if owner_cache[index] != face["module_id"]:
+                    continue
+                depth = plane[0] * point[0] + plane[1] * point[1] + plane[2]
+                if depth < depths[index]:
+                    depths[index] = depth
+                    pixels[index * 3:index * 3 + 3] = color
     scene["ppm"] = f"P6\n{out_width} {out_height}\n255\n".encode("ascii") + pixels
     return scene

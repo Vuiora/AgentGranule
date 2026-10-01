@@ -240,6 +240,9 @@ class DesignUiTests(unittest.TestCase):
                     left, top, right, bottom = canvas.bbox(label)
                     self.assertTrue(all(point_in_polygon(corner, polygons[key]) for corner in
                                         ((left, top), (right, top), (right, bottom), (left, bottom))))
+                for face in scene["height_faces"]:
+                    self.assertTrue(all(point_in_polygon(point[:2], polygons[face["module_id"]])
+                                        for point in face["points"]))
 
             root.geometry("1120x780")
             flush()
@@ -251,12 +254,22 @@ class DesignUiTests(unittest.TestCase):
             tree = next(w for w in descendants(root) if w.winfo_class() == "Treeview")
             baseline_camera = frames[-1][1]
             baseline_areas = areas()
+            baseline_heights = {region["module_id"]: region["height"]
+                                for region in frames[-1][2]["regions"]}
+            self.assertAlmostEqual(baseline_camera["roll"], -0.97)
+            for key in baseline_heights:
+                surfaces = {face["surface"] for face in frames[-1][2]["height_faces"]
+                            if face["module_id"] == key}
+                self.assertIn("top", surfaces)
+                self.assertIn("side", surfaces)
+            self.assertTrue(canvas.find_withtag("height-edge"))
             partitioned()
             entry.delete(0, "end")
             entry.insert(0, "0.00")
             self.button(root, "应用当前值").invoke()
             flush()
             self.assertEqual(areas()["preview-0"], 0)
+            self.assertEqual(frames[-1][2]["regions"][0]["height"], 0)
             self.assertEqual(tree.set("preview-0", "effort"), "0.00")
             self.assertEqual(len(canvas.find_withtag("zero-marker")), 1)
             # A zero tile has no area. Its explicit bottom marker remains an
@@ -274,10 +287,14 @@ class DesignUiTests(unittest.TestCase):
             self.assertEqual(tree.set("preview-0", "effort"), "1.00")
             self.assertEqual(tree.set("preview-0", "share"), "50.00%")
             self.assertGreater(areas()["preview-0"], baseline_areas["preview-0"])
+            new_heights = {region["module_id"]: region["height"]
+                           for region in frames[-1][2]["regions"]}
+            self.assertGreater(new_heights["preview-0"], baseline_heights["preview-0"])
             for key in ("preview-1", "preview-2"):
                 self.assertEqual(tree.set(key, "effort"), "待分配")
                 self.assertEqual(tree.set(key, "share"), "25.00%")
                 self.assertLess(areas()[key], baseline_areas[key])
+                self.assertLess(new_heights[key], baseline_heights[key])
             self.assertEqual(frames[-1][1], baseline_camera)
             partitioned()
             picker.set("explanation")

@@ -23,6 +23,8 @@ main
 
 ## 审批规则
 
+用户本轮要求新分支 `codex/decimal-granularity` 实现 0.01 小数设计力度，并将模块分析、3D 展示和人工分配写为下一步 TODO。分支创建时基于 `codex/granularity-slider`；开发期间维护者已合并[原生弹窗 PR #8](https://github.com/Vuiora/AgentGranule/pull/8)，并删除父分支。已核对 main 包含父分支提交，新 PR 直接以 main 为目标，差异仅包含本轮实现与规划；新 PR 仍须按当前 head SHA 人工审批。本轮 Agent 不执行任何合并。
+
 Skill/MCP PR #6 已由维护者合并。本轮用户明确更正为分支开发，在 `codex/granularity-slider` 实现本地粒度滑块，以独立 PR 申请合入 main；界面范围仅限滑块设置，所有合并仍须明确人工批准。
 
 算法 PR #5 已由维护者合并。本轮按用户最新要求，从已合并的 main 开 `codex/skill-mcp-workflow`，整体任务 Skill 与 MCP 的衔接作为一个联合验收 PR 申请合入 main，不重建已结束的历史分支树；其他分层开发仍按适用的下层先验收规则执行。

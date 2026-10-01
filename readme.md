@@ -8,7 +8,9 @@
 
 [第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 已合并；其 41 项本地测试与四组合 CI 通过。
 
-[整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。`codex/granularity-slider` 按远端批注返工为原生小弹窗，61 项本地测试通过；原网页 PR #7 已关闭且未合并。
+[整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。按远端批注返工的原生小弹窗 [PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已由人工合并，其 61 项本地测试通过；原网页 PR #7 已关闭且未合并。
+
+`codex/decimal-granularity` 的 [PR #9](https://github.com/Vuiora/AgentGranule/pull/9) 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项；父 #8 合并后直接以 main 为审批目标。下一轮的“框架模块分析 → 3D 模块展示 → 调用者人工分配设计力度”见 [TODO 蓝图](docs/module-design-3d-todo.md)，3D 展示尚未实现。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
@@ -26,6 +28,8 @@
 ## 运行框架
 
 粒度小弹窗可通过 `python -m agentgranule.slider` 启动，用单个滑块选择简要、标准或详细；确认后接入现有人工设置与局部重算机制，没有网页或列举数目控件。Skill 可直接启动弹窗并读取人工确认结果，见 [弹窗说明](docs/granularity-slider.md)。
+
+设计力度使用 `python -m agentgranule.slider --parameter design_effort`，滑块每步 0.01，始终显示两位小数；API／CLI／MCP 使用 `parameters={"design_effort": 0.37}`。每种模式仅修改所选参数，其他设置保留。数值超界、非数字或不在 0.01 网格上的输入会被拒绝，不自动舍入；JSON 数值的 `0.50` 和 `0.5` 等价。
 
 需要 Python 3.11+：
 
@@ -77,6 +81,8 @@ with Project() as project:
 最初的 **A／子问题 B／分类数目** 是解释这一概念的例子，不规定真实项目必须采用这种任务结构，也不把粒度限定为分类。
 
 实现中的参数对象为 `parameters`：`count` 是列举数目，`detail_level` 表示详细程度，`max_depth` 表示展开深度；可附加宿主理解的其他 JSON 参数。框架负责存储与传递，当前自动校验数目、版本和结果基本格式；其他参数的语义执行由外部 Agent 承担。
+
+`design_effort` 是人工分配的相对设计力度，取值 0.00–1.00，并精确到 0.01；与详细程度标签独立，不要求各模块之和为 1，也不等同于实际工时或模型令牌预算。未分配时不补入隐含力度；弹窗的 0.50 仅供预览，真实确认才生效。0.00 表示最低力度，当前仍执行任务，未来 3D 中保留可见标记。算法和 MCP 请求在 `constraints.design_effort` 传递此值，由宿主处理其语义。
 
 默认优先级为：模块人工覆盖 > 项目方向默认 > 内置建议。分类／列举／优点／缺点方向初始建议为 3 项、standard 详细程度；其他方向为 standard。默认值可通过 `set_default_granularity` 修改，初始建议不代表用户已批准或回答。`request_granularity` 向宿主提供询问及建议来源。
 

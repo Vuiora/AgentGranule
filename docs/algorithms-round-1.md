@@ -12,7 +12,9 @@
 
 ## 粒度编译与执行
 
-`compile_constraints` 将参数编译成 item_count、detail_level、max_depth、output_kind 和 custom，保留非数目型详细程度及自定义参数。参数对象整体替换，编译时不补入隐含数目或改写自定义详细级别。
+`compile_constraints` 将参数编译成 item_count、detail_level、max_depth、design_effort、output_kind 和 custom，保留非数目型详细程度及自定义参数。参数对象整体替换，编译时不补入隐含数目或改写自定义详细级别。design_effort 为 0.00–1.00、步长 0.01 的人工相对力度；未分配时编译为 null，独立于详细程度标签，服务端不衡量语义质量。
+
+小数参数版本将 AlgorithmRunner 缓存版本升级为 round-1-v2、Workflow 请求版本升级为 2；旧缓存与旧版请求／结果在下次运行时失效，重新派发时提供新的 constraints 字段。历史事件仍保留，过期请求不能提交。
 
 ```python
 from agentgranule import AlgorithmRunner, Project, Task

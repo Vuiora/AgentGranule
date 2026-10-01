@@ -8,8 +8,8 @@ import copy
 import unittest
 from unittest.mock import patch
 
-from agentgranule.design_view import show_design
-from agentgranule.venn import render_scene
+from agentgranule.design_view import point_in_polygon, show_design
+from agentgranule.venn import hit_regions, render_treemap_scene
 
 
 class PreviewService:
@@ -201,13 +201,13 @@ class DesignUiTests(unittest.TestCase):
 
         self.run_preview(service, inspect, messagebox=isolated_confirmation)
 
-    def test_unrelated_regions_stay_separate_when_human_preview_changes(self):
+    def test_compact_shares_rebalance_without_changing_other_efforts(self):
         service = PreviewService(True, directions=("analysis", "explanation"))
         frames = []
 
-        def capture(regions, camera, width, height, **kwargs):
-            scene = render_scene(regions, camera, width, height, **kwargs)
-            frames.append((copy.deepcopy(regions), copy.deepcopy(camera), scene))
+        def capture(rectangles, camera, width, height, **kwargs):
+            scene = render_treemap_scene(rectangles, camera, width, height, **kwargs)
+            frames.append((copy.deepcopy(rectangles), copy.deepcopy(scene["camera"]), scene))
             return scene
 
         def inspect(root):
@@ -218,13 +218,28 @@ class DesignUiTests(unittest.TestCase):
                 root.wait_variable(done)
                 root.update()
 
-            def separated():
+            def areas():
+                return {key: (r[2] - r[0]) * (r[3] - r[1]) for key, r in frames[-1][0].items()}
+
+            def partitioned():
                 self.assertTrue(frames, "The real scene must have been rendered")
-                boxes = [region["bbox"] for region in frames[-1][2]["regions"]]
+                rectangles, _, scene = frames[-1]
+                boxes = list(rectangles.values())
                 for index, left in enumerate(boxes):
                     for right in boxes[index + 1:]:
-                        self.assertTrue(left[2] < right[0] or right[2] < left[0] or
-                                        left[3] < right[1] or right[3] < left[1])
+                        self.assertTrue(left[2] <= right[0] or right[2] <= left[0] or
+                                        left[3] <= right[1] or right[3] <= left[1])
+                self.assertEqual(sum(round(float(tree.set(key, "share").rstrip("%")) * 100)
+                                     for key in tree.get_children()), 10000)
+                for key, x, y, _ in scene["centers"]:
+                    if areas()[key] > 0:
+                        self.assertEqual(hit_regions((x, y), scene), (key,))
+                polygons = {face["module_id"]: face["points"] for face in scene["faces"]}
+                for label in canvas.find_withtag("module-label"):
+                    key = canvas.gettags(label)[1]
+                    left, top, right, bottom = canvas.bbox(label)
+                    self.assertTrue(all(point_in_polygon(corner, polygons[key]) for corner in
+                                        ((left, top), (right, top), (right, bottom), (left, bottom))))
 
             root.geometry("1120x780")
             flush()
@@ -233,45 +248,69 @@ class DesignUiTests(unittest.TestCase):
             entry = next(w for w in descendants(root) if w.winfo_class() == "TEntry")
             scale = next(w for w in descendants(root) if isinstance(w, self.tk.Scale))
             picker = next(w for w in descendants(root) if w.winfo_class() == "TCombobox")
-            baseline_regions, baseline_camera, _ = frames[-1]
-            baseline_positions = {r["module_id"]: r["center"] for r in baseline_regions}
-            separated()
+            tree = next(w for w in descendants(root) if w.winfo_class() == "Treeview")
+            baseline_camera = frames[-1][1]
+            baseline_areas = areas()
+            partitioned()
             entry.delete(0, "end")
             entry.insert(0, "0.00")
             self.button(root, "应用当前值").invoke()
             flush()
-            self.assertEqual(frames[-1][0][0]["effort"], 0.0)
+            self.assertEqual(areas()["preview-0"], 0)
+            self.assertEqual(tree.set("preview-0", "effort"), "0.00")
+            self.assertEqual(len(canvas.find_withtag("zero-marker")), 1)
+            # A zero tile has no area. Its explicit bottom marker remains an
+            # actual reachable target, even after a different module is chosen.
+            tree.selection_set("preview-1")
+            flush()
+            self.assertEqual(tree.selection(), ("preview-1",))
+            x, y = canvas.winfo_width() // 2, canvas.winfo_height() - 13
+            canvas.event_generate("<ButtonPress-1>", x=x, y=y)
+            canvas.event_generate("<ButtonRelease-1>", x=x, y=y)
+            flush()
+            self.assertEqual(tree.selection(), ("preview-0",))
             scale.set(100)
             flush()
-            regions, camera, _ = frames[-1]
-            self.assertEqual(regions[0]["effort"], 1.0)
-            self.assertTrue(all(r["effort"] is None for r in regions[1:]))
-            self.assertEqual({r["module_id"]: r["center"] for r in regions}, baseline_positions)
-            self.assertEqual(camera, baseline_camera)
-            separated()
+            self.assertEqual(tree.set("preview-0", "effort"), "1.00")
+            self.assertEqual(tree.set("preview-0", "share"), "50.00%")
+            self.assertGreater(areas()["preview-0"], baseline_areas["preview-0"])
+            for key in ("preview-1", "preview-2"):
+                self.assertEqual(tree.set(key, "effort"), "待分配")
+                self.assertEqual(tree.set(key, "share"), "25.00%")
+                self.assertLess(areas()[key], baseline_areas[key])
+            self.assertEqual(frames[-1][1], baseline_camera)
+            partitioned()
             picker.set("explanation")
             picker.event_generate("<<ComboboxSelected>>")
             flush()
-            self.assertTrue(all(r["effort"] is None for r in frames[-1][0]))
+            self.assertTrue(all(tree.set(key, "effort") == "待分配" for key in tree.get_children()))
             self.assertEqual(frames[-1][1], baseline_camera)
             picker.set("analysis")
             picker.event_generate("<<ComboboxSelected>>")
             flush()
-            self.assertEqual(frames[-1][0][0]["effort"], 1.0)
-            separated()
+            self.assertEqual(tree.set("preview-0", "effort"), "1.00")
+            self.assertEqual(tree.set("preview-0", "share"), "50.00%")
+            partitioned()
             canvas.event_generate("<ButtonPress-1>", x=210, y=100)
             canvas.event_generate("<B1-Motion>", x=280, y=150)
             canvas.event_generate("<ButtonRelease-1>", x=280, y=150)
             canvas.event_generate("<MouseWheel>", delta=120)
             flush()
             self.assertNotEqual(frames[-1][1]["yaw"], baseline_camera["yaw"])
-            separated()
+            partitioned()
+            # Oblique views must not let names or percentages extend over a
+            # neighbouring module, even when a broad bbox hides a narrow face.
+            canvas.event_generate("<ButtonPress-1>", x=400, y=200)
+            canvas.event_generate("<B1-Motion>", x=236, y=61)
+            canvas.event_generate("<ButtonRelease-1>", x=236, y=61)
+            flush()
+            partitioned()
             root.geometry("900x680")
             flush()
-            separated()
+            partitioned()
             self.assertEqual(service.approvals, [])
 
-        with patch("agentgranule.design_view.render_scene", capture):
+        with patch("agentgranule.design_view.render_treemap_scene", capture):
             self.run_preview(service, inspect)
 
 

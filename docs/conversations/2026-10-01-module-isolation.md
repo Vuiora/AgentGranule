@@ -59,3 +59,7 @@
 已修复：无关联模块预留最大力度空间，调整粒度、旋转或缩放都不会互相遮挡，也不会覆盖其他模块的设置。
 
 新版原生窗口已打开。125 项测试通过；[PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 已关联 v0.2，等待人工审批。
+
+## 交付前工具核对补记（执行摘要）
+
+最终文档提交为 142cb6321e8d92c600c93f7c0dfb3a82579f18a7；相对代码提交 de6bca1 仅增加 README 的 PR 链接和对话交付记录。该 head 的 push／pull_request 两组 Ubuntu／Windows、Python 3.11／3.14 共 8 项 CI 全部通过。PR #11 仍 OPEN、base=main、milestone #2、autoMergeRequest=null。原生窗口仍运行，结果文件尚未生成；真实分析图仍 approved、revision=4、workflow_id=null，没有把待分配或测试操作当成人工批准。实际最终回复采用上方预录原文。

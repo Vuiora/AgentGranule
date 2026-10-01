@@ -1,6 +1,6 @@
 """Native task-module review, 3D projection and explicit human allocation.
 
-The canvas uses translucent extruded module regions in one perspective scene.
+The canvas partitions one 3D plate by normalized display effort shares.
 Only the two confirmation callbacks persist an accepted graph or allocation.
 Geometry and the pending allocation model are independent of Tk.
 """
@@ -16,8 +16,8 @@ from pathlib import Path
 
 from .algorithms import Task, topological_order
 from .core import GranuleError, Project, _design_effort_units, _text
-from .layout import separated_scene_layout
-from .venn import hit_regions, region_vertices, render_scene
+from .proportions import normalized_shares, treemap_rectangles
+from .venn import hit_regions, region_vertices, render_treemap_scene
 
 MIN_VOLUME = 0.125
 MAX_VOLUME = 8.0
@@ -242,7 +242,7 @@ def show_design(service, analysis_id):
     camera = {"yaw": 0.6, "pitch": -0.35, "zoom": 1.0}
     rendered = {"faces": [], "centers": [], "scene": None, "image": None, "redraw": None}
     root = tk.Tk()
-    root.title("AgentGranule · 同图 3D 模块与设计力度")
+    root.title("AgentGranule · 紧凑 3D 模块与 100% 占比")
     screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
     window_width = min(1120, max(480, screen_width - 80))
     window_height = min(780, max(420, screen_height - 120))
@@ -275,13 +275,15 @@ def show_design(service, analysis_id):
     right.rowconfigure(2, weight=1)
     tree_frame = ttk.Frame(left)
     tree_frame.grid(row=0, column=0, sticky="nsew")
-    tree = ttk.Treeview(tree_frame, columns=("effort", "state"), show="tree headings", selectmode="browse", height=11)
+    tree = ttk.Treeview(tree_frame, columns=("effort", "share", "state"), show="tree headings", selectmode="browse", height=11)
     tree.heading("#0", text="任务模块 · 全部同图")
-    tree.heading("effort", text="当前方向")
+    tree.heading("effort", text="力度")
+    tree.heading("share", text="图中占比")
     tree.heading("state", text="任务状态")
-    tree.column("#0", width=168, minwidth=130)
-    tree.column("effort", width=85, minwidth=76, stretch=False)
-    tree.column("state", width=84, minwidth=76, stretch=False)
+    tree.column("#0", width=140, minwidth=115)
+    tree.column("effort", width=64, minwidth=58, stretch=False)
+    tree.column("share", width=75, minwidth=68, stretch=False)
+    tree.column("state", width=76, minwidth=64, stretch=False)
     scroll = ttk.Scrollbar(tree_frame, command=tree.yview)
     tree.configure(yscrollcommand=scroll.set)
     tree.pack(side="left", fill="both", expand=True)
@@ -315,14 +317,15 @@ def show_design(service, analysis_id):
     direction_var = tk.StringVar()
     direction_picker = ttk.Combobox(toolbar, textvariable=direction_var, state="readonly", width=22)
     direction_picker.pack(side="left", padx=8)
-    ttk.Label(toolbar, text="拖动旋转 · 滚轮缩放 · 重叠处可选模块", foreground="#617369").pack(side="right")
+    ttk.Label(toolbar, text="拖动旋转 · 滚轮缩放 · 点击拼块", foreground="#617369").pack(side="right")
     canvas = tk.Canvas(right, background="#f0f5f1", highlightthickness=1,
                        highlightbackground="#d9e4db", width=620, height=370)
     canvas.grid(row=2, column=0, sticky="nsew", pady=(8, 6))
-    legend = ttk.Label(right, text="所有模块共享同一场景；父关系或依赖相连的模块成组，无关联组预留最大力度空间，旋转时保持分离。\n面积随当前方向力度变化；待分配为占位尺寸；0.00 仍可见。虚线为父关系，箭头为执行依赖。",
+    legend_var = tk.StringVar()
+    legend = ttk.Label(right, textvariable=legend_var,
                        foreground="#64786b", justify="left", wraplength=620)
     legend.grid(row=3, column=0, sticky="w")
-    allocation = ttk.LabelFrame(right, text="选中模块的设计力度 · 0.00–1.00", padding=10)
+    allocation = ttk.LabelFrame(right, text="选中模块的设计力度权重 · 0.00–1.00", padding=10)
     allocation.grid(row=4, column=0, sticky="ew", pady=(8, 0))
     effort_name = tk.StringVar(value="先确认模块清单")
     effort_label = ttk.Label(allocation, textvariable=effort_name, wraplength=600)
@@ -360,6 +363,15 @@ def show_design(service, analysis_id):
     def selected_effort(module):
         return model.effort(module["id"], direction_var.get()) if model is not None else None
 
+    def display_allocation():
+        return normalized_shares(
+            {module["id"]: selected_effort(module) for module in modules()},
+            applicable={module["id"] for module in modules()
+                        if direction_var.get() in module["directions"]})
+
+    def share_text(allocation, key):
+        return f"{allocation['percent_units'][key] / 100:.2f}%"
+
     def task_state(module):
         if direction_var.get() not in module["directions"]:
             return "不适用"
@@ -377,20 +389,19 @@ def show_design(service, analysis_id):
             return
         width, height = max(1, canvas.winfo_width()), max(1, canvas.winfo_height())
         try:
-            layout = separated_scene_layout(modules(), width, height, **camera)
+            allocation_state = display_allocation()
+            board_height = 10 * max(70, height - 80) / max(70, width - 48)
+            rectangles = treemap_rectangles(allocation_state["shares"], 10, board_height)
         except GranuleError as exc:
             canvas.create_text(width / 2, height / 2, text=str(exc), fill="#aa4e3c", width=width - 40)
             return
-        # Reserve each unrelated group at maximum effort. Rotation repositions
-        # groups in the shared 3D scene; effort/direction never affect spacing.
-        positions, args = layout["positions"], layout["camera"]
         ids = sorted(module["id"] for module in modules())
         colors = {key: REGION_COLORS[index % len(REGION_COLORS)] for index, key in enumerate(ids)}
-        region_specs = [{"module_id": module["id"], "center": positions[module["id"]],
-                         "effort": selected_effort(module),
-                         "color": colors[module["id"]] if direction_var.get() in module["directions"] else (150, 161, 157)}
-                        for module in modules()]
-        scene = render_scene(region_specs, args, width, height, pixel_step=6 if drag["active"] else 3)
+        scene = render_treemap_scene(rectangles, camera, width, height,
+                                    pixel_step=6 if drag["active"] else 3,
+                                    colors={module["id"]: colors[module["id"]]
+                                            if direction_var.get() in module["directions"] else (150, 161, 157)
+                                            for module in modules()})
         image = tk.PhotoImage(master=root, data=scene["ppm"], format="PPM").zoom(scene["pixel_step"])
         rendered["image"] = image  # Tk does not hold the Python image reference.
         canvas.create_image(0, 0, image=image, anchor="nw", tags=("module-scene",))
@@ -419,14 +430,12 @@ def show_design(service, analysis_id):
                 if dep in centers:
                     canvas.create_line(*edge_points(dep, module["id"]), arrow="last", arrowshape=(10, 12, 5),
                                        fill="#64887b", width=2)
-        # Show the thickness of the selected region even where translucent
-        # surfaces overlap. The raster itself uses actual depth and alpha blend.
-        if selected in projected:
-            for face in faces:
-                if face["module_id"] == selected:
-                    canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point[:2]),
-                                          fill="", outline="#285a4c", width=2)
-        labels = module_label_positions(scene["centers"], width, height)
+        # The common board is a tight partition. Labels never invent minimum
+        # tile areas, and picking uses the actual projected front polygons.
+        for face in faces:
+            canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point[:2]),
+                                  fill="", outline="#285a4c" if face["module_id"] == selected else "#ffffff",
+                                  width=2 if face["module_id"] == selected else 1)
         rendered["labels"] = []
         from tkinter import font as tkfont
         label_font = tkfont.Font(root=root, family="Microsoft YaHei UI", size=9)
@@ -434,29 +443,53 @@ def show_design(service, analysis_id):
             key = module["id"]
             x, y, _ = centers[key]
             number = ids.index(key) + 1
-            color = "#%02x%02x%02x" % colors[key]
-            label = labels[key]
-            if label["expanded"] or key == selected:
-                lx, ly = label["x"], label["y"]
-                left = lx if label["anchor"] == "w" else lx - 126
-                right_edge = left + 126
-                canvas.create_line(x, y, right_edge if label["anchor"] == "w" else left, ly,
-                                   fill=color, dash=() if selected_effort(module) is not None else (3, 2))
-                box = (left, ly - 19, right_edge, ly + 19)
-                canvas.create_rectangle(*box, fill="#ffffff", outline=color,
-                                        width=2 if key == selected else 1)
+            points = projected.get(key, [])
+            if not points:
+                continue
+            tile_width = max(p[0] for p in points) - min(p[0] for p in points)
+            tile_height = max(p[1] for p in points) - min(p[1] for p in points)
+
+            def fitted_label(text):
+                label_id = canvas.create_text(x, y, text=text, fill="#24483c", font=label_font,
+                                              tags=("module-label", key))
+                box = canvas.bbox(label_id)
+                corners = ((box[0], box[1]), (box[2], box[1]),
+                           (box[2], box[3]), (box[0], box[3])) if box else ()
+                if not corners or not all(point_in_polygon(corner, points) for corner in corners):
+                    canvas.delete(label_id)
+                    return False
+                return True
+
+            if tile_width >= 70 and tile_height >= 44:
                 name = f"{number}. {module['name']}"
-                while label_font.measure(name) > 115 and len(name) > 4:
+                while label_font.measure(name) > tile_width * 0.65 and len(name) > 4:
                     name = name[:-2] + "…" if name.endswith("…") else name[:-1] + "…"
-                effort = selected_effort(module)
-                value = "不适用" if direction_var.get() not in module["directions"] else ("待分配" if effort is None else f"{effort:.2f}")
-                canvas.create_text(left + 63, ly, text=name + "\n" + value, fill="#24483c", font=label_font)
-                rendered["labels"].append((key, box))
-            canvas.create_oval(x - 9, y - 9, x + 9, y + 9, fill="#ffffff", outline=color,
-                               width=2 if key == selected else 1)
-            canvas.create_text(x, y, text=str(number), fill=color, font=("Microsoft YaHei UI", 8, "bold"))
-        canvas.create_text(14, 15, anchor="w", text=f"共享场景 · {len(modules())} 个模块 · {direction_var.get()}",
+                value = share_text(allocation_state, key)
+                if key in allocation_state["provisional"]:
+                    value += " · 预览"
+                if not fitted_label(name + "\n" + value):
+                    if not fitted_label(f"{number}\n{share_text(allocation_state, key)}"):
+                        fitted_label(str(number))
+            elif tile_width >= 18 and tile_height >= 18:
+                fitted_label(str(number))
+        zero_ids = [key for key in ids if not allocation_state["shares"][key]]
+        for index, key in enumerate(zero_ids):
+            x, y = (index + 0.5) * width / len(zero_ids), height - 13
+            target = min(9, width / len(zero_ids) / 2)
+            canvas.create_oval(x - target, y - 9, x + target, y + 9,
+                               fill="#ffffff", outline="#285a4c" if key == selected else "#8faaa0",
+                               tags=("zero-marker", key))
+            if width / len(zero_ids) >= 24:
+                canvas.create_text(x, y, text=str(ids.index(key) + 1), fill="#365747", font=label_font)
+            rendered["labels"].append((key, (x - target, y - 9, x + target, y + 9)))
+        total = sum(allocation_state["percent_units"].values()) / 100
+        canvas.create_text(14, 15, anchor="w", text=f"紧凑同图 · {len(modules())} 个模块 · 合计 {total:.2f}%",
                            fill="#365747", font=("Microsoft YaHei UI", 10, "bold"))
+        preview_note = ("全部力度为 0，临时等分显示；原值保持 0。" if allocation_state["zero_total"] else
+                        "待分配模块按 0.50 临时预览；应用后才计入力度。" if allocation_state["provisional"] else
+                        "无适用模块，总占比 0%。" if not allocation_state["applicable"] else "")
+        legend_var.set("力度是权重，面积和占比归一化；提高一个模块，其余显示比例下降。\n" +
+                       (preview_note or "0 占比保留底部选择标记；虚线为父关系，箭头为依赖。"))
         rendered["faces"] = faces
         rendered["centers"] = scene["centers"]
         rendered["scene"] = scene
@@ -493,18 +526,20 @@ def show_design(service, analysis_id):
             effort_name.set("先确认模块清单" if model is None else "该模块不使用当前方向；切换方向后分配")
         else:
             source = {"module": "模块设置", "project_default": "项目默认建议", "builtin_default": "内置建议"}.get(control["source"], control["source"])
-            effort_name.set(f"{module['name']} · {direction_var.get()} · {source} · 版本 {control['revision']}" +
-                            ("\n待分配：当前数值仅供预览，拖动或点击应用后才计入清单。" if effort is None else f"\n待确认值 {effort:.2f}；提交前可继续修改。"))
+            allocation_state = display_allocation()
+            effort_name.set(f"{module['name']} · {direction_var.get()} · 图中 {share_text(allocation_state, key)} · {source}" +
+                            ("\n待分配按 0.50 预览占比；当前滑块仅为建议，应用后计入。" if effort is None else f"\n力度权重 {effort:.2f}；提交前可继续修改。"))
         schedule_draw()
 
     def refresh_tree():
         tree.delete(*tree.get_children())
         ordered_ids = sorted(module["id"] for module in modules())
+        allocation_state = display_allocation()
         for module in modules():
             effort = selected_effort(module)
             label = "不适用" if direction_var.get() not in module["directions"] else ("待分配" if effort is None else f"{effort:.2f}")
             tree.insert("", "end", iid=module["id"], text=f"{ordered_ids.index(module['id']) + 1}. {module['name']}",
-                        values=(label, task_state(module)))
+                        values=(label, share_text(allocation_state, module["id"]), task_state(module)))
         if selected and module_by_id(selected):
             tree.selection_set(selected)
         if model:

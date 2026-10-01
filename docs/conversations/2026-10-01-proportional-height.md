@@ -99,3 +99,21 @@
 - 独立复核105组场景（3组混合／None／全零 × 7视角 × 5个roll），真实几何不随相机改变、0.60内缩、线性高度、唯一拾取及不跨邻区均通过。视觉复核明确本次像地面上的实体长方体，前次仅几何证明不足不能替代实际观感验收。
 - 修正版原生窗口父PID 29124正常启动，自有结果返回status=cancelled、进程退出0、无错误；窗口当前已关闭。没有将取消当作批准。真实图仍approved/revision=4、8模块已分配0项、workflow_id=null。新窗口使用独立height-volume-window-state.json，不覆盖之前仍可能运行的旧窗口结果状态。
 - README、TODO、Skill契约和PR草稿改为最终实体长方体、固定板面相机及161项测试，不再声称更新已合并的PR #11或声称当前原生窗口仍打开。
+
+## 助手
+
+修正后的 161 项测试全部通过，已创建 [PR #12](https://github.com/Vuiora/AgentGranule/pull/12)。实体顶面、侧面和向上的高度都已核对；正在检查 Ubuntu 和 Windows 的 CI 结果。
+
+## 工具执行摘要
+
+代码提交a1bf33087da79335ffa1c97aedcecc4ae87326a9已推送codex/proportional-module-height；创建PR #12、base=main、state=OPEN、关联milestone #2且autoMergeRequest=null，已作为pull_request附件关联当前Codex对话。基于main只有本轮实体高度功能与相关文档／记录，不包含已合并PR #11的重复差异。保留此前9/30未知来源未提交记录，未替用户修改其他脏文件。远端push/pull_request各4项Ubuntu／Windows、Python3.11／3.14检查正在运行，尚未声称通过。
+
+## 助手最终回复（交付前记录）
+
+已修正为清晰的立体长方体，顶面、侧面和竖直高度都可见；占比越大，模块越大、越高，其他原始力度保持不变。
+
+161 项测试通过，[PR #12](https://github.com/Vuiora/AgentGranule/pull/12) 待人工审批。
+
+示例占比为 50%、25%、25%：
+
+![立体模块渲染示例](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/.agentgranule/height-cuboids-final.png)

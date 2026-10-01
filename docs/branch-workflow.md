@@ -25,7 +25,7 @@ main
 
 PR #11 尚未合并。用户进一步要求紧凑同图100%占比，并明确仅归一化显示、保留原始力度；继续 `codex/unrelated-module-layout` 更新该 PR 的标题、范围和验证证据，不创建重复 PR。布局与渲染变更后须对新 head SHA 重新人工审批。
 
-用户最新明确确认“3D 立体高度随占比增大”。交付前核对发现PR #11已由维护者于2026-10-01 20:05（Asia/Shanghai）合并，main为4d7d6848ffeb603f791c4516957a8bb31f735725且包含前分支head。本轮从该main创建codex/proportional-module-height，追加真实高度渲染、所属片区裁剪及固定相机，不修改已合并PR的范围；底面归一化与原始力度保存契约不变。新PR继续关联v0.2 milestone，仍须人工审查当前head SHA，不执行合并。
+用户最新明确确认“3D 立体高度随占比增大”。交付前核对发现PR #11已由维护者于2026-10-01 20:05（Asia/Shanghai）合并，main为4d7d6848ffeb603f791c4516957a8bb31f735725且包含前分支head。本轮从该main创建codex/proportional-module-height，以[PR #12](https://github.com/Vuiora/AgentGranule/pull/12)追加真实长方体、所属片区裁剪及固定相机，不修改已合并PR的范围；底面归一化与原始力度保存契约不变。新PR继续关联v0.2 milestone，仍须人工审查当前head SHA，不执行合并。
 
 用户最新要求无关联模块的粒度调整不能覆盖其他模块。远端 PR #10 已由维护者合并，main 为 f441101685e9aadfe0056f4b7cd8c52f79923048；本轮从该 main 创建 `codex/unrelated-module-layout`，只修复布局隔离并补充参数／结果隔离回归，以独立 PR 申请合入 main，关联 v0.2 milestone。新 PR 必须按当前 head SHA 重新人工审批，不执行合并或自动合并。
 

@@ -37,3 +37,15 @@
 ## 助手（原文）
 
 确认按钮已修复。116 项测试通过，其中新增回归覆盖了两个窗口尺寸、三档字体缩放和两个流程阶段；按钮保持可见，点击后能正常进入力度分配。正在更新 PR，并用原模块清单重开窗口。
+
+## 工具调用与结果（执行摘要）
+
+执行摘要：确认按钮修复提交8c1759709d48443293bc7b966c859ecffb71d6e0已推送，PR #10保持未合并；更新说明到116项验证。最新head的Actions运行36849648137/36849654227，共8项Ubuntu/Windows、Python3.11/3.14检查全部通过。重开原窗口launcher PID27148、子进程15588、有效window_handle2297162。随后真实窗口成功确认8模块，状态approved/revision4；分配阶段退出0、唯一新结果cancelled，workflow_id=null、8项均未保存design_effort。没有代人批准、重复创建会话或启动依赖分配的任务。原模块清单逐项保持。
+
+## 助手（最终回复原文）
+
+已修复：底部确认按钮不会再被挤出窗口。实际记录显示 **8 个模块已成功确认**。
+
+116 项测试及 CI 通过，修复已更新到 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10)，未合并。
+
+后续力度分配已取消。按 [技能规则](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/.agents/skills/agentgranule-workflow/SKILL.md) 的“不构成人工批准，暂停依赖新分配的执行”，功能分析仍需完成力度分配。

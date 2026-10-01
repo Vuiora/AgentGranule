@@ -23,6 +23,10 @@ main
 
 ## 审批规则
 
+PR #11 尚未合并。用户进一步要求紧凑同图100%占比，并明确仅归一化显示、保留原始力度；继续 `codex/unrelated-module-layout` 更新该 PR 的标题、范围和验证证据，不创建重复 PR。布局与渲染变更后须对新 head SHA 重新人工审批。
+
+用户最新要求无关联模块的粒度调整不能覆盖其他模块。远端 PR #10 已由维护者合并，main 为 f441101685e9aadfe0056f4b7cd8c52f79923048；本轮从该 main 创建 `codex/unrelated-module-layout`，只修复布局隔离并补充参数／结果隔离回归，以独立 PR 申请合入 main，关联 v0.2 milestone。新 PR 必须按当前 head SHA 重新人工审批，不执行合并或自动合并。
+
 用户进一步要求“实现TODO任务”，在 `codex/module-design-3d` 开发模块分析、原生 3D 与完整人工力度分配。新分支最初基于小数粒度 #9；开发期间维护者已合并 #9（main 合并提交 eff6b6ce27827483e93c96bcdfca3d7329f3f597），已完成包含小数基础功能的 105 项联合验证。因此本轮新 PR 直接以 main 为目标，差异仅包含本轮实现，审批仍关联新 PR 当前 head SHA。Agent 不合并、不启用自动合并。
 
 用户本轮要求新分支 `codex/decimal-granularity` 实现 0.01 小数设计力度，并将模块分析、3D 展示和人工分配写为下一步 TODO。分支创建时基于 `codex/granularity-slider`；开发期间维护者已合并[原生弹窗 PR #8](https://github.com/Vuiora/AgentGranule/pull/8)，并删除父分支。已核对 main 包含父分支提交，新 PR 直接以 main 为目标，差异仅包含本轮实现与规划；新 PR 仍须按当前 head SHA 人工审批。本轮 Agent 不执行任何合并。
@@ -40,5 +44,7 @@ Skill/MCP PR #6 已由维护者合并。本轮用户明确更正为分支开发�
 - 本文为协作流程约束。GitHub 服务端分支保护是否可用取决于账号套餐；若不可用，须如实说明，不能声称技术上阻止了维护者直接推送。
 
 ## Milestone
+
+`v0.2 — 模块分析与同图 3D 人工分配`（[milestone #2](https://github.com/Vuiora/AgentGranule/milestone/2)）关联已合并 PR #10 及本阶段的后续修复，不设置截止日期，本轮不关闭。
 
 建立 `v0.1 — 框架与可审批接入`，关联蓝图／框架、两类接入、集成审批及 main 审批的任务与 PR。未设截止日期，所有审批项保持开放，直到人工决定并完成适用验收。Milestone 在本轮不提前关闭。

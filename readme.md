@@ -14,7 +14,7 @@
 
 已由维护者合并的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，116 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，在同一张图中旋转／缩放查看半透明模块薄片、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)。
 
-`codex/unrelated-module-layout` 修复无关联模块的粒度调整遮挡：仅按既有父关系／依赖的连通关系成组，各独立组预留 1.00 最大力度投影空间。力度或方向变化不移动其他组；旋转和缩放后仍分离。125 项自动测试通过，本轮修复待人工 PR 审批，归入 [v0.2 milestone](https://github.com/Vuiora/AgentGranule/milestone/2)。
+`codex/unrelated-module-layout` 的 [PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 修复无关联模块的粒度调整遮挡：仅按既有父关系／依赖的连通关系成组，各独立组预留 1.00 最大力度投影空间。力度或方向变化不移动其他组；旋转和缩放后仍分离。125 项自动测试通过，本轮修复待人工 PR 审批，归入 [v0.2 milestone](https://github.com/Vuiora/AgentGranule/milestone/2)。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 

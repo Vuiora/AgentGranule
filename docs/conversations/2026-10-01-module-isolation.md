@@ -42,3 +42,20 @@
 ## 助手
 
 完整的 125 项测试已通过。修复保留了同一张 3D 图：有关联的模块可在组内层叠，无关联组始终分开。正在发布修复 PR，并检查 GitHub CI。
+
+## 工具执行摘要
+
+- 提交 de6bca16cb6314ee79b702fd28713b16508d0519，推送 codex/unrelated-module-layout，创建 [PR #11](https://github.com/Vuiora/AgentGranule/pull/11)，以 main 为目标、milestone #2；核对 state=OPEN、autoMergeRequest=null。PR 已附加到本任务。
+- 同步纳入上一轮尚未推送的 10 月 1 日最终对话与 milestone 原文记录；保留未触碰的 9 月 30 日原有工作区修改。
+- 真实功能分析图仍 approved、revision=4、8 个模块、workflow_id=null，8 项力度均未设置。使用唯一新结果文件 feature-isolation-choice-fc455c09ed0c45a2940a57de3fc6cbe7.json 续开原生窗口，不修改已冻结的模块图、不代替用户设置力度；launcher PID=33204，自己的 GUI 子进程 PID=4880、MainWindowHandle=1114780、标题 AgentGranule · 同图 3D 模块与设计力度。自身错误输出为空，没有读取其他应用的界面。
+- 首次核对 CI：Ubuntu／Windows、Python 3.11／3.14、push 与 pull_request 两次运行共 8 项，7 项通过，剩余 push Windows 3.14 尚在运行。不会将待完成检查写为通过。
+
+## 助手
+
+[PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 已创建并关联 v0.2 milestone，新版原生窗口也已打开，可以直接拖动滑块查看效果。当前 CI 已通过 7 项，正在等待最后一项 Windows 检查。
+
+## 助手最终回复（交付前记录）
+
+已修复：无关联模块预留最大力度空间，调整粒度、旋转或缩放都不会互相遮挡，也不会覆盖其他模块的设置。
+
+新版原生窗口已打开。125 项测试通过；[PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 已关联 v0.2，等待人工审批。

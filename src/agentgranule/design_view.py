@@ -16,7 +16,8 @@ from pathlib import Path
 
 from .algorithms import Task, topological_order
 from .core import GranuleError, Project, _design_effort_units, _text
-from .venn import hit_regions, region_positions, region_vertices, render_scene
+from .layout import separated_scene_layout
+from .venn import hit_regions, region_vertices, render_scene
 
 MIN_VOLUME = 0.125
 MAX_VOLUME = 8.0
@@ -318,7 +319,7 @@ def show_design(service, analysis_id):
     canvas = tk.Canvas(right, background="#f0f5f1", highlightthickness=1,
                        highlightbackground="#d9e4db", width=620, height=370)
     canvas.grid(row=2, column=0, sticky="nsew", pady=(8, 6))
-    legend = ttk.Label(right, text="所有半透明模块片区共享同一场景；重叠只表示同图展示。固定厚度下，面积和体积随当前方向的力度变化。\n待分配为占位尺寸；0.00 仍可见；不适用方向用灰色。虚线为父关系，箭头为执行依赖。",
+    legend = ttk.Label(right, text="所有模块共享同一场景；父关系或依赖相连的模块成组，无关联组预留最大力度空间，旋转时保持分离。\n面积随当前方向力度变化；待分配为占位尺寸；0.00 仍可见。虚线为父关系，箭头为执行依赖。",
                        foreground="#64786b", justify="left", wraplength=620)
     legend.grid(row=3, column=0, sticky="w")
     allocation = ttk.LabelFrame(right, text="选中模块的设计力度 · 0.00–1.00", padding=10)
@@ -376,13 +377,13 @@ def show_design(service, analysis_id):
             return
         width, height = max(1, canvas.winfo_width()), max(1, canvas.winfo_height())
         try:
-            positions = region_positions(modules())
+            layout = separated_scene_layout(modules(), width, height, **camera)
         except GranuleError as exc:
             canvas.create_text(width / 2, height / 2, text=str(exc), fill="#aa4e3c", width=width - 40)
             return
-        # Fit to the maximum possible extent, so moving an effort slider changes
-        # a region's size without automatically zooming the camera back out.
-        args = fitted_scene_camera(positions, width, height, **camera)
+        # Reserve each unrelated group at maximum effort. Rotation repositions
+        # groups in the shared 3D scene; effort/direction never affect spacing.
+        positions, args = layout["positions"], layout["camera"]
         ids = sorted(module["id"] for module in modules())
         colors = {key: REGION_COLORS[index % len(REGION_COLORS)] for index, key in enumerate(ids)}
         region_specs = [{"module_id": module["id"], "center": positions[module["id"]],

@@ -9,18 +9,19 @@ import unittest
 from unittest.mock import patch
 
 from agentgranule.design_view import show_design
+from agentgranule.venn import render_scene
 
 
 class PreviewService:
     """Synthetic proposals and settings; no database or real approval actor."""
 
-    def __init__(self, approved=False):
+    def __init__(self, approved=False, directions=("explanation",)):
         modules = [
             {"id": f"preview-{index}", "name": f"隔离测试模块 {index}",
              "description": "检查模块职责及其分析依据。",
              "expected_output": "测试窗口布局，不执行实际任务。",
              "basis": "隔离测试数据，不代表真实人工确认。",
-             "directions": ["explanation"], "parent_id": None,
+             "directions": list(directions), "parent_id": None,
              "depends_on": []}
             for index in range(3)
         ]
@@ -57,9 +58,10 @@ class PreviewService:
         return {
             "analysis_id": analysis_id, "revision": self.graph["revision"],
             "workflow_id": None,
-            "controls": [{"module_id": module["id"], "direction": "explanation",
+            "controls": [{"module_id": module["id"], "direction": direction,
                           "parameters": {"detail_level": "standard"}, "source": "builtin_default", "revision": 0}
-                         for module in self.graph["analysis"]["modules"]],
+                         for module in self.graph["analysis"]["modules"]
+                         for direction in module["directions"]],
         }
 
     def save_allocation(self, *_):
@@ -198,6 +200,79 @@ class DesignUiTests(unittest.TestCase):
             self.assert_visible(root, self.button(root, "查看分配清单并确认 →"))
 
         self.run_preview(service, inspect, messagebox=isolated_confirmation)
+
+    def test_unrelated_regions_stay_separate_when_human_preview_changes(self):
+        service = PreviewService(True, directions=("analysis", "explanation"))
+        frames = []
+
+        def capture(regions, camera, width, height, **kwargs):
+            scene = render_scene(regions, camera, width, height, **kwargs)
+            frames.append((copy.deepcopy(regions), copy.deepcopy(camera), scene))
+            return scene
+
+        def inspect(root):
+            def flush():
+                root.update()
+                done = self.tk.BooleanVar(master=root)
+                root.after(60, lambda: done.set(True))
+                root.wait_variable(done)
+                root.update()
+
+            def separated():
+                self.assertTrue(frames, "The real scene must have been rendered")
+                boxes = [region["bbox"] for region in frames[-1][2]["regions"]]
+                for index, left in enumerate(boxes):
+                    for right in boxes[index + 1:]:
+                        self.assertTrue(left[2] < right[0] or right[2] < left[0] or
+                                        left[3] < right[1] or right[3] < left[1])
+
+            root.geometry("1120x780")
+            flush()
+            canvas = next(w for w in descendants(root) if isinstance(w, self.tk.Canvas))
+            self.assertEqual(len(canvas.find_withtag("module-scene")), 1)
+            entry = next(w for w in descendants(root) if w.winfo_class() == "TEntry")
+            scale = next(w for w in descendants(root) if isinstance(w, self.tk.Scale))
+            picker = next(w for w in descendants(root) if w.winfo_class() == "TCombobox")
+            baseline_regions, baseline_camera, _ = frames[-1]
+            baseline_positions = {r["module_id"]: r["center"] for r in baseline_regions}
+            separated()
+            entry.delete(0, "end")
+            entry.insert(0, "0.00")
+            self.button(root, "应用当前值").invoke()
+            flush()
+            self.assertEqual(frames[-1][0][0]["effort"], 0.0)
+            scale.set(100)
+            flush()
+            regions, camera, _ = frames[-1]
+            self.assertEqual(regions[0]["effort"], 1.0)
+            self.assertTrue(all(r["effort"] is None for r in regions[1:]))
+            self.assertEqual({r["module_id"]: r["center"] for r in regions}, baseline_positions)
+            self.assertEqual(camera, baseline_camera)
+            separated()
+            picker.set("explanation")
+            picker.event_generate("<<ComboboxSelected>>")
+            flush()
+            self.assertTrue(all(r["effort"] is None for r in frames[-1][0]))
+            self.assertEqual(frames[-1][1], baseline_camera)
+            picker.set("analysis")
+            picker.event_generate("<<ComboboxSelected>>")
+            flush()
+            self.assertEqual(frames[-1][0][0]["effort"], 1.0)
+            separated()
+            canvas.event_generate("<ButtonPress-1>", x=210, y=100)
+            canvas.event_generate("<B1-Motion>", x=280, y=150)
+            canvas.event_generate("<ButtonRelease-1>", x=280, y=150)
+            canvas.event_generate("<MouseWheel>", delta=120)
+            flush()
+            self.assertNotEqual(frames[-1][1]["yaw"], baseline_camera["yaw"])
+            separated()
+            root.geometry("900x680")
+            flush()
+            separated()
+            self.assertEqual(service.approvals, [])
+
+        with patch("agentgranule.design_view.render_scene", capture):
+            self.run_preview(service, inspect)
 
 
 if __name__ == "__main__":

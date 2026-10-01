@@ -23,6 +23,12 @@ class Workflow:
         project._db.commit()
 
     def create_workflow(self, session_id: str, tasks: list[dict], context: dict | None = None) -> dict:
+        with self.project._db:
+            self.project._db.execute("BEGIN IMMEDIATE")
+            return self._create_workflow_locked(session_id, tasks, context)
+
+    def _create_workflow_locked(self, session_id: str, tasks: list[dict], context: dict | None = None) -> dict:
+        """Create inside the caller's transaction, including batch effort approval."""
         self.project._session(session_id)
         if not isinstance(tasks, list) or any(not isinstance(t, dict) for t in tasks):
             raise GranuleError("tasks must be a list of task objects")
@@ -39,10 +45,9 @@ class Workflow:
         workflow_id = uuid4().hex
         data = {"tasks": [vars(task) for task in ordered], "context": context,
                 "results": {}, "requests": {}}
-        with self.project._db:
-            self.project._db.execute("INSERT INTO workflows VALUES (?, ?, ?)",
-                                     (workflow_id, session_id, _json(data)))
-            self.project._event(session_id, "workflow.created", {"workflow_id": workflow_id, **data})
+        self.project._db.execute("INSERT INTO workflows VALUES (?, ?, ?)",
+                                 (workflow_id, session_id, _json(data)))
+        self.project._event(session_id, "workflow.created", {"workflow_id": workflow_id, **data})
         return {"workflow_id": workflow_id, "order": [task.id for task in ordered]}
 
     def _load(self, workflow_id):

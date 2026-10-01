@@ -30,7 +30,7 @@ class MCPWorkflowTests(unittest.TestCase):
                 async with ClientSession(reader, writer) as client:
                     await client.initialize()
                     tools = (await client.list_tools()).tools
-                    self.assertEqual(len(tools), 12)
+                    self.assertEqual(len(tools), 19)
                     self.assertTrue(all(tool.outputSchema for tool in tools))
                     async def call(name, **args):
                         result = await client.call_tool(name, args)

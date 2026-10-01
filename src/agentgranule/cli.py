@@ -6,6 +6,8 @@ import sys
 
 from .core import GranuleError, Project
 from .workflow import Workflow
+from .design import Design
+from .framework import analyze_framework
 
 WORKFLOW_OPERATIONS = {
     "create_workflow": ("session_id", "tasks", "context"),
@@ -14,9 +16,20 @@ WORKFLOW_OPERATIONS = {
     "workflow_status": ("workflow_id",),
 }
 
+DESIGN_OPERATIONS = {
+    "propose_analysis": ("session_id", "analysis", "previous_analysis_id"),
+    "update_analysis": ("analysis_id", "expected_revision", "analysis"),
+    "get_analysis": ("analysis_id",),
+    "approve_analysis": ("analysis_id", "expected_revision", "actor"),
+    "allocation_snapshot": ("analysis_id",),
+    "save_allocation": ("snapshot", "choices", "actor"),
+}
+
 
 OPERATIONS = {
     **WORKFLOW_OPERATIONS,
+    **DESIGN_OPERATIONS,
+    "analyze_framework": ("root_path",),
     "create_session": ("title",),
     "add_problem": ("session_id", "description", "parent_id"),
     "add_module": ("session_id", "description", "parent_id"),
@@ -41,9 +54,13 @@ def main(argv=None):
         arguments = json.loads(args.arguments)
         if not isinstance(arguments, dict) or set(arguments) - set(OPERATIONS[args.operation]):
             raise GranuleError("Invalid operation arguments")
-        with Project(args.database) as project:
-            target = Workflow(project) if args.operation in WORKFLOW_OPERATIONS else project
-            result = getattr(target, args.operation)(**arguments)
+        if args.operation == "analyze_framework":
+            result = analyze_framework(**arguments)
+        else:
+            with Project(args.database) as project:
+                target = (Workflow(project) if args.operation in WORKFLOW_OPERATIONS else
+                          Design(project) if args.operation in DESIGN_OPERATIONS else project)
+                result = getattr(target, args.operation)(**arguments)
         print(json.dumps({"result": result}, ensure_ascii=False))
         return 0
     except (GranuleError, TypeError, json.JSONDecodeError) as exc:

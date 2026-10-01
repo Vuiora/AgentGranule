@@ -7,6 +7,8 @@ from mcp.server.fastmcp import FastMCP
 
 from .core import Project, _text
 from .workflow import Workflow
+from .design import Design
+from .framework import analyze_framework as scan_framework
 
 
 def create_server(database: str) -> FastMCP:
@@ -26,6 +28,10 @@ def create_server(database: str) -> FastMCP:
     def workflow(operation, **arguments):
         with Project(database) as project:
             return getattr(Workflow(project), operation)(**arguments)
+
+    def design(operation, **arguments):
+        with Project(database) as project:
+            return getattr(Design(project), operation)(**arguments)
 
     @server.tool()
     def create_session(title: str) -> dict[str, Any]:
@@ -86,6 +92,41 @@ def create_server(database: str) -> FastMCP:
     def history(session_id: str) -> dict[str, Any]:
         """Read ordered conversation, granularity, dispatch and acceptance events."""
         return core("history", session_id=session_id)
+
+    @server.tool()
+    def analyze_framework(root_path: str) -> dict[str, Any]:
+        """Statically inspect local Python modules into an unapproved, reviewable proposal; never runs source."""
+        return scan_framework(root_path)
+
+    @server.tool()
+    def propose_analysis(session_id: str, analysis: dict, previous_analysis_id: str | None = None) -> dict[str, Any]:
+        """Validate and record a proposed module graph, without human approval or task execution."""
+        return design("propose_analysis", session_id=session_id, analysis=analysis, previous_analysis_id=previous_analysis_id)
+
+    @server.tool()
+    def update_analysis(analysis_id: str, expected_revision: int, analysis: dict) -> dict[str, Any]:
+        """Revise an unapproved graph if its revision is current; approved graphs remain immutable."""
+        return design("update_analysis", analysis_id=analysis_id, expected_revision=expected_revision, analysis=analysis)
+
+    @server.tool()
+    def get_analysis(analysis_id: str) -> dict[str, Any]:
+        """Read the durable module graph, approval revision and workflow association."""
+        return design("get_analysis", analysis_id=analysis_id)
+
+    @server.tool()
+    def approve_analysis(analysis_id: str, expected_revision: int, actor: str) -> dict[str, Any]:
+        """Record the actual caller's explicit graph confirmation; does not allocate effort automatically."""
+        return design("approve_analysis", analysis_id=analysis_id, expected_revision=expected_revision, actor=actor)
+
+    @server.tool()
+    def allocation_snapshot(analysis_id: str) -> dict[str, Any]:
+        """Read every approved module/direction's current parameters and revision for atomic allocation."""
+        return design("allocation_snapshot", analysis_id=analysis_id)
+
+    @server.tool()
+    def save_allocation(snapshot: dict, choices: list[dict], actor: str) -> dict[str, Any]:
+        """Save the actual human's complete hundredth-precision allocation atomically; reject any stale item."""
+        return design("save_allocation", snapshot=snapshot, choices=choices, actor=actor)
 
     return server
 

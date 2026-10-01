@@ -1,34 +1,39 @@
 ---
 name: agentgranule-workflow
-description: "使用 AgentGranule 执行整体任务：划分模块与处理方向、询问人工粒度、通过 MCP 调度依赖任务、提交并校验结果、记录可见对话，以及设置变更后的局部重算。适用于需要人工控制详细程度且保留流程记录的任务。"
+description: "使用 AgentGranule 分析任务模块，展示原生 3D 模块图，由调用者手动分配设计力度，再通过 MCP 调度与校验依赖任务、记录可见对话和局部重算。适用于需要人工控制各模块力度并保留流程记录的整体任务。"
 ---
 
 # AgentGranule 整体任务
 
-读取 [接口契约](references/contract.md) 获取工具参数、安装与 CLI 后备入口。此 Skill 操作当前项目的本地数据库；真正的语义分析由宿主 Agent 执行。
+读取 [接口契约](references/contract.md) 获取数据结构、MCP／CLI 后备与本地窗口入口。语义分析和真实内容处理由宿主 Agent 执行；服务端保存、传递与机械校验，不接模型供应商。
 
-## 从需求到任务图
+## 分析模块、展示与人工分配
 
-1. 新任务调用 `create_session(title)`；续作使用已有 session_id / workflow_id，先读 `history` 和 `workflow_status`，不要重复建任务。将实际用户需求通过 `record_message` 原文保存。
-2. 按实际需求划分模块，调用 `add_module`。为每个模块确定处理方向；创建明确的任务 id 和依赖边。不要把分类或 A/B 示例当作所有任务的固定结构。
-3. 每个模块／方向调用 `request_granularity` 获取建议。在支持桌面 GUI 的本地宿主中，按 [弹窗调用](references/contract.md#本地粒度弹窗) 启动小弹窗，让真实用户滑动选择并确认：详细程度使用默认模式，设计力度使用 `--parameter design_effort`（0.00–1.00、步长 0.01）；不用浏览器页面，也不展示列举数目模块。用户已直接指定参数或已授权使用默认值时沿用真实指示，无需重复弹窗。远程／无显示环境可直接在对话中询问详细程度，并说明弹窗无法打开。
-4. 弹窗返回 saved 时设置已经写入，读取 control 并记录实际返回，不重复 set_granularity；返回 cancelled、仍在运行或报错时，没有取得新的人工选择，暂停依赖该选择的执行，不将关闭或错误当作默认授权。对话入口记录实际问答，仅在真实人工选择后调用 `set_granularity(..., actor=真实操作者标识)`；参数对象整体替换，需同时保留仍需要的参数。用户已明确授权使用默认值时可继续，并记录其真实授权；没有回答时暂停依赖该选择的任务，不将默认建议或超时写成人工决定。已获授权的设置无需再次询问。
-5. 调用 `create_workflow`，传入模块 id、方向、依赖和任务事实／材料所在的 context。记录并保留返回的 workflow_id。context 和任务图固定；需求或材料变更时建立新 workflow，并记录关联原因。
+1. 新任务 create_session，使用 record_message 原文保存实际需求。续作先读已有 analysis_id、workflow_id、history 与状态，不重复创建会话。记录所有实际可见问答和工具结果，不保存隐藏思考或认证凭据；仅回传取得的内容，不能自动读取其他聊天。
+2. 依据需求与材料提出模块清单：稳定逻辑 ID、名称、职责、预期输出、依据、处理方向、可选父关系和明确依赖。Python 框架可用 analyze_framework 静态提取真实文件与定义，读其 warnings 与完整导入关系，再审阅建议；其他任务由宿主按材料进行语义分解，不把 Python 文件或 A/B 示例当作固定模块结构。
+3. 调用 propose_analysis 保存未批准提案。调用者须能查看与修改模块、父关系、方向和依赖；原生窗口提供清单编辑。无桌面环境用对话呈现完整清单，取得真实人工确认后 approve_analysis；不要把 Agent 提案、默认值或需求中的“执行任务”泛化为批准这份具体模块图。已明确批准的具体图可按真实指示调用审批接口，无需重复询问。
+4. 本地宿主按 [原生 3D 调用](references/contract.md#原生-3d-与完整力度分配) 启动窗口，供调用者旋转／缩放检查模块，并逐模块、逐方向手动分配 design_effort=0.00–1.00、步长 0.01。填写后展示完整分配表及受影响任务，调用者明确确认才保存。窗口中的图审核与力度分配是两次不同确认；不能由 Agent 点击代替人选择。无桌面环境则用 allocation_snapshot 取得全部设置，在对话中取得完整分配后 save_allocation；用户已给定完整具体分配时沿用真实指示。
+5. 成功退出且 status=saved 时，核对 analysis_id、workflow_id、control 参数与数据库实际值，已经保存的设置不再重复提交。cancelled、运行中、错误或缺少结果文件不构成人工批准，暂停依赖新分配的执行。改用对话时保留真实问答；超时不是答案。确认图后取消力度分配，图审核可保留，但尚无本轮力度批准。
+6. 首次完整分配保存会原子创建工作流，使用返回的 workflow_id 继续，不再另建同图工作流。图与材料冻结；修改时 propose_analysis(...,previous_analysis_id=旧批准图ID)，由调用者审阅新图，保留旧图与旧结果。只改力度时在原 analysis 上刷新快照、完整确认并调用 save_allocation。
 
-设计力度未分配时不补入人工值，弹窗 0.50 仅供预览。各模块独立设置，不隐含总量预算；0.00 为合法最低力度，当前仍执行任务。`constraints.design_effort` 由宿主按实际任务解释，不等同于列举数目、工时或内容质量。模块分析与 3D 批量分配的完整流程尚属下一轮 TODO，不声称已实现。
+未分配显示“待分配”及占位大小，0.50 预览不代表人设置。各模块值独立，不隐含总和为 1；0.00 为合法最低力度，当前仍执行任务。3D 尺寸反映当前选定方向的人工相对力度，不能当作工时、令牌数或内容质量。依赖与父子关系分别显示；源码导入关系只是待审核的依赖建议。
 
-## 执行与交付
+## 执行、记录与局部重算
 
-循环调用 `next_task(workflow_id)`。按 request 中的 description、context、constraints 和直接依赖 inputs 处理，执行实际任务而非生成占位结果。没有足够材料时明确说明缺失，先补充信息，不能为满足 count 编造内容。
+循环 next_task(workflow_id)，按 description、context、constraints 与直接依赖 inputs 实际处理。缺少材料时补充信息，不能为满足数目编造内容。
 
-- 返回 count 时输出 `{"items":[非空字符串...]}`，项数必须恰好一致；否则输出 `{"text":"实际内容"}`。
-- 需要结构化展开时附加 `details` 树，并遵守 max_depth。detail_level、design_effort 与 custom 参数的语义由 Agent 执行，服务端不判断内容质量。
-- 将实际可见助手输出、用户补充、工具调用与结果通过 `record_message` 保存；不保存隐藏思考或认证机密。宿主需回传全部可见消息，服务端不读取其他聊天。只能取得部分工具内容时明确标注执行摘要。
-- 调用 `submit_task(workflow_id, request_id, output)`。校验拒绝后修正实际结果重试；过期或已消费的 request 不能再次提交，应重新调用 next_task。
-- 每次 next_task 会返回当前有效 outputs 和进度；request=null 且 complete=true 时，交付有效结果。完成前再次调用 workflow_status，避免交付已过期内容，记录最终可见回复。
+- item_count 非空时输出 {"items":[非空字符串...]}，数量恰好一致；否则 {"text":"实际内容"}。需要结构化细节时附加 details 树，遵守 max_depth。
+- detail_level、design_effort 和 custom 参数的语义由宿主按实际任务解释；机械校验不能证明内容真实性或质量。
+- record_message 保存可见用户／助手原文、真实工具调用与结果。只能取得部分工具内容时明确标为执行摘要，不伪装为全文。
+- submit_task 接受结果；格式失败修正内容后重试，过期或已消费请求需重新 next_task，不能重用旧 request_id。
+- 交付前 workflow_status 再确认当前有效输出。request=null 且 complete=true 才是完整结果，记录最终可见回复。
 
-用户修改粒度时记录原文并调用 set_granularity，再读 workflow_status。受影响任务和依赖者会失效；无关任务保留。继续 next_task / submit_task 到 complete=true。失效历史仍留在事件记录中，不覆盖既有问答。
+力度修改使相关任务与后继失效，无关结果保留。整批快照有任何一项过期都需重新加载、重新完整确认；不能重放旧批准以覆盖新设置。事件保存旧版本，不覆盖既有问答。
+
+## 既有单项粒度入口
+
+已有明确模块图的任务可继续使用原核心／Workflow 接口。单独调整详细程度时 request_granularity 后通过 [单滑块弹窗](references/contract.md#本地粒度弹窗) 取得真实回答；design_effort 模式为 --parameter design_effort。取消／失败的确认规则与完整分配相同。set_granularity 整体替换参数对象，保留仍需使用的其他参数；没有人工指示时不自动采用内置建议。
 
 ## 接入边界
 
-优先使用已配置的 AgentGranule MCP 工具；工具未连接时按接口契约运行同名 CLI 操作。不能声称读过未取得的历史消息。此 Skill 不授予外发消息、合并、发布或新增供应商／界面的权限；项目代码变更遵守本仓库 AGENTS.md 和分支审批流程。
+优先使用实际连接的 AgentGranule MCP；未连接时执行同名 JSON CLI。MCP 不负责在远程调用者电脑打开窗口，窗口由本地宿主启动。Skill 不授予外发消息、合并、发布或其他界面／供应商权限；项目代码变更遵守 AGENTS.md 与分支审批。操作者标识用于记录，框架尚未提供身份认证，不能以 actor 文本声称已验证某个人。

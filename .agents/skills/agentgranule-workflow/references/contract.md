@@ -53,3 +53,40 @@ python -m agentgranule.slider --database ABSOLUTE_DATABASE_PATH --module-id ACTU
 `design` 是示例方向，应使用当前任务的真实方向；它并非固定保留名。界面显示两位小数，JSON 的 0.50 与 0.5 等价。未分配时显示 0.50 预览与未分配提示，确认才写入。读取返回 control，核对模块、方向和所选参数符合本次请求；用户在弹窗改了模块或方向时，不把其他对象的确认当作本任务的批准。直接对话设置可用 `parameters={"design_effort":0.37}`；set_granularity 整体替换对象，调用前保留仍需使用的参数。
 
 任务请求通过 constraints.design_effort 传递人工相对力度（未分配为 null），不放入 custom，也不自动校验语义质量。各模块值独立、不隐含总和为 1；0.00 当前仍执行任务。新增字段升级了请求与缓存版本，旧版请求／结果会在刷新时失效；重新 next_task 获取当前请求后执行，不能重用旧批准结果。
+
+
+## 模块分析与图审核
+
+| 操作 | 参数 | 返回 |
+| --- | --- | --- |
+| analyze_framework | root_path | analysis、source_root、module_count、warnings |
+| propose_analysis | session_id, analysis, previous_analysis_id? | 分析对象 |
+| update_analysis | analysis_id, expected_revision, analysis | 新修订分析对象 |
+| get_analysis | analysis_id | 当前分析对象 |
+| approve_analysis | analysis_id, expected_revision, actor | 已批准分析对象及实际模块映射 |
+| allocation_snapshot | analysis_id | 图修订与全部有效控制快照 |
+| save_allocation | snapshot, choices, actor | status=saved、analysis_id、workflow_id、controls、report、affected_task_ids |
+
+analysis 示例：
+
+```json
+{"summary":"据材料提出模块清单","modules":[{"id":"source","name":"材料分析","description":"分析实际材料","expected_output":"有依据的分析结果","basis":"用户提供的材料","directions":["design"],"parent_id":null,"depends_on":[]}],"context":{"facts":["实际事实"]}}
+```
+
+模块非空、稳定逻辑 id 唯一，各方向为唯一非空字符串。父关系与依赖分别为无环图；依赖指向本提案的其他模块。分析对象返回 analysis_id、session_id、revision、state=proposed/approved、analysis、module_ids（逻辑 ID → 实际模块 UUID）、workflow_id 及 previous_analysis_id。approved 图不可编辑；修改材料或图时新建关联提案。模块依赖展开为依赖模块所有方向的任务；任务 ID 为 JSON 编码的 [逻辑ID,方向]，用户界面使用模块名和方向。
+
+静态 Python 扫描不执行源码，优先 src；读取模块说明、公开定义和本地导入。循环导入保留于 context.import_relationships，并在 warnings 明确提示；暂空的执行依赖需人工审阅。非 Python 或缺少源码材料的任务由宿主进行有依据的分解，不伪称扫描已完成。
+
+choices 示例：[{"module_id":"实际模块UUID","direction":"design","design_effort":0.37}]。必须包括 approved 图全部模块／方向，恰好各一次；以完整 allocation_snapshot 为前提，任一控制或图修订变化均整批拒绝。只更新 design_effort，其他参数保留；即使等于项目默认也将实际人工值保存为模块覆盖。首次确认后自动在同一事务创建 workflow，此后继续返回相同工作流并使相关后继失效。
+
+## 原生 3D 与完整力度分配
+
+```sh
+python -m agentgranule.design_view --database ABSOLUTE_DATABASE_PATH --analysis-id ACTUAL_ANALYSIS_ID --output-file ABSOLUTE_NEW_CHOICE_JSON_PATH
+```
+
+本地 Tk 3D 投影窗口支持模块清单审核／编辑、旋转、缩放、选择、方向切换，以及滑块和两位小数精确输入。相同几何体按体积线性映射设计力度，零值仍可见、待分配明确标记；不使用浏览器。模块清单批准前不能提交力度；preview 不写入设置，正式清单确认后才整批保存。取消返回 {"status":"cancelled"}；错误退出 2，不生成新的成功结果。
+
+每次使用新的结果文件，等待真实用户操作，不能自行操作确认按钮。只有进程成功退出、status=saved、analysis_id 对应本次图且数据库与 controls 一致才继续返回的 workflow_id；不要重复 create_workflow 或 save_allocation。首次确认模块图后取消力度，模块审核可能已保存，仍无力度批准。不能把取消或 GUI 报错解释为授权默认值。
+
+Windows 本地宿主可用独立 pythonw.exe 打开可见窗口，通过 --output-file 接收结果，并保留进程句柄检查退出码。沙箱中启动而未在实际桌面可见时，明确说明不能仅以内部窗口存在当作已呈现。远程无桌面宿主改为对话确认完整图与分配，不声称 MCP 服务端向用户显示了窗口。服务端有 19 个工具，既有 12 个工具契约保持兼容。

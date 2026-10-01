@@ -10,7 +10,9 @@
 
 [整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。按远端批注返工的原生小弹窗 [PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已由人工合并，其 61 项本地测试通过；原网页 PR #7 已关闭且未合并。
 
-`codex/decimal-granularity` 的 [PR #9](https://github.com/Vuiora/AgentGranule/pull/9) 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项；父 #8 合并后直接以 main 为审批目标。下一轮的“框架模块分析 → 3D 模块展示 → 调用者人工分配设计力度”见 [TODO 蓝图](docs/module-design-3d-todo.md)，3D 展示尚未实现。
+已由维护者合并的 [PR #9](https://github.com/Vuiora/AgentGranule/pull/9) 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项。
+
+`codex/module-design-3d` 已实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，105 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，旋转／缩放查看 3D 模块、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)，新功能仍待人工 PR 审批。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
@@ -30,6 +32,14 @@
 粒度小弹窗可通过 `python -m agentgranule.slider` 启动，用单个滑块选择简要、标准或详细；确认后接入现有人工设置与局部重算机制，没有网页或列举数目控件。Skill 可直接启动弹窗并读取人工确认结果，见 [弹窗说明](docs/granularity-slider.md)。
 
 设计力度使用 `python -m agentgranule.slider --parameter design_effort`，滑块每步 0.01，始终显示两位小数；API／CLI／MCP 使用 `parameters={"design_effort": 0.37}`。每种模式仅修改所选参数，其他设置保留。数值超界、非数字或不在 0.01 网格上的输入会被拒绝，不自动舍入；JSON 数值的 `0.50` 和 `0.5` 等价。
+
+完整的原生 3D 模块审核与力度分配可在项目目录启动：
+
+```powershell
+.venv\Scripts\python.exe -X utf8 examples\design_framework.py
+```
+
+示例分析当前真实 Python 框架并打开原生窗口，不自动批准模块或力度。已有分析用 `--analysis-id ID` 续作；Skill 也可调用 `python -m agentgranule.design_view --database ABS_DB --analysis-id ID --output-file UNIQUE_NEW_FILE`。核心接入增加 `Design` 分析服务，MCP 共 19 个工具。
 
 需要 Python 3.11+：
 

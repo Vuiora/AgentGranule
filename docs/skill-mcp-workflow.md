@@ -26,7 +26,7 @@ python -m agentgranule.mcp_server --database /absolute/path/project.sqlite3
 7. workflow_status 查看当前有效输出。complete=true 后交付；可从 history 读取事件与传入的原文。
 8. 修改粒度后重新调度，仅使受影响的任务和后代失效，无关结果保留。服务重启后按 workflow_id 继续。
 
-工具详细契约见 [Skill 接口契约](../.agents/skills/agentgranule-workflow/references/contract.md)。12 个 MCP 工具覆盖会话、模块、记录、粒度与完整任务调度；CLI 保留原有核心操作并新增 4 个工作流操作。
+工具详细契约见 [Skill 接口契约](../.agents/skills/agentgranule-workflow/references/contract.md)。原有 12 个 MCP 工具覆盖会话、模块、记录、粒度与任务调度；原生 3D 开发新增静态分析与六个 Design 操作，当前共 19 个工具。完整流程见 [模块审核与人工分配](module-design-3d.md)，既有 Workflow 接口保持兼容。
 
 ## 实现与边界
 

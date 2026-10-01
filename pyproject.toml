@@ -17,6 +17,7 @@ mcp = ["mcp>=1.28,<2"]
 [project.scripts]
 agentgranule = "agentgranule.cli:main"
 agentgranule-mcp = "agentgranule.mcp_server:main"
+agentgranule-slider = "agentgranule.slider:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

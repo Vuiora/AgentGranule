@@ -23,6 +23,8 @@ main
 
 ## 审批规则
 
+Skill/MCP PR #6 已由维护者合并。本轮用户明确更正为分支开发，在 `codex/granularity-slider` 实现本地粒度滑块，以独立 PR 申请合入 main；界面范围仅限滑块设置，所有合并仍须明确人工批准。
+
 算法 PR #5 已由维护者合并。本轮按用户最新要求，从已合并的 main 开 `codex/skill-mcp-workflow`，整体任务 Skill 与 MCP 的衔接作为一个联合验收 PR 申请合入 main，不重建已结束的历史分支树；其他分层开发仍按适用的下层先验收规则执行。
 
 第一轮算法在 `feature/algorithm-round-1` 开发，基于人工合并后的 main，单独 PR 申请合入 main。前置 #1–#4 已由维护者合并；实际 #3 的目标被维护者调整为 main。既有分层流程保留为后续接入开发的规则，新算法分支同样须明确人工批准当前 head SHA。

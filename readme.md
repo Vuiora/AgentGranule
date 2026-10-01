@@ -8,9 +8,9 @@
 
 [第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 已合并；其 41 项本地测试与四组合 CI 通过。
 
-本轮 `codex/skill-mcp-workflow` 实现 [整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接：人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算。启用方式与一轮测试见 [接入说明](docs/skill-mcp-workflow.md)。53 项本地测试通过；[PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 待人工审批。
+[整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。`codex/granularity-slider` 按远端批注返工为原生小弹窗，61 项本地测试通过；原网页 PR #7 已关闭且未合并。
 
-框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入、界面或身份认证。
+框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
 蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。
 
@@ -24,6 +24,8 @@
 本轮概念修正、验证和边界见 [docs/review-rework.md](docs/review-rework.md)；首轮历史证据保存在 [docs/delivery-status.md](docs/delivery-status.md)。
 
 ## 运行框架
+
+粒度小弹窗可通过 `python -m agentgranule.slider` 启动，用单个滑块选择简要、标准或详细；确认后接入现有人工设置与局部重算机制，没有网页或列举数目控件。Skill 可直接启动弹窗并读取人工确认结果，见 [弹窗说明](docs/granularity-slider.md)。
 
 需要 Python 3.11+：
 

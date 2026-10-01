@@ -1,6 +1,6 @@
 """Native task-module review, 3D projection and explicit human allocation.
 
-The canvas uses rotating world-space cube vertices and a perspective camera.
+The canvas uses translucent extruded module regions in one perspective scene.
 Only the two confirmation callbacks persist an accepted graph or allocation.
 Geometry and the pending allocation model are independent of Tk.
 """
@@ -16,12 +16,49 @@ from pathlib import Path
 
 from .algorithms import Task, topological_order
 from .core import GranuleError, Project, _design_effort_units, _text
+from .venn import hit_regions, region_positions, region_vertices, render_scene
 
 MIN_VOLUME = 0.125
 MAX_VOLUME = 8.0
 PLACEHOLDER_VOLUME = 1.0
 CUBE_FACES = ((0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1),
               (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3))
+REGION_COLORS = ((55, 147, 117), (83, 127, 194), (188, 107, 144), (208, 154, 65),
+                 (137, 116, 191), (56, 153, 173), (183, 115, 76), (110, 156, 78))
+
+
+def module_label_positions(centers, width, height):
+    """Place readable callouts around the shared scene, independent of depth."""
+    groups = [[], []]
+    for module_id, x, y, depth in centers:
+        groups[x >= width / 2].append((module_id, x, y, depth))
+    placements = {}
+    for side, group in enumerate(groups):
+        group.sort(key=lambda center: (center[2], center[0]))
+        # Every region retains a numbered target. With many modules, only its
+        # selected full label is overlaid; the module list holds all full names.
+        expanded = len(group) * 38 <= max(1, height - 70)
+        for index, (module_id, x, y, _) in enumerate(group):
+            label_y = 42 + (index + 0.5) * max(1, height - 76) / max(1, len(group))
+            placements[module_id] = {"x": 14 if side == 0 else width - 14,
+                                     "y": label_y, "anchor": "w" if side == 0 else "e",
+                                     "expanded": expanded, "center": (x, y)}
+    return placements
+
+
+def fitted_scene_camera(positions, width, height, *, yaw=0.6, pitch=-0.35, zoom=1.0):
+    """Fit every maximum-size region, keeping callouts outside the diagram."""
+    vertices = [point for position in positions.values() for point in region_vertices(position, 1.0)]
+    extent = max((math.sqrt(sum(v * v for v in point)) for point in vertices), default=0)
+    distance = max(8, extent * 1.5 + 6)
+    projected = [project_point(point, yaw=yaw, pitch=pitch, distance=distance, focal=1, center=(0, 0))
+                 for point in vertices]
+    x_span = max((abs(point[0]) for point in projected), default=1)
+    y_span = max((abs(point[1]) for point in projected), default=1)
+    focal = min(max(35, width / 2 - 145) / max(x_span, 1e-9),
+                max(35, height / 2 - 38) / max(y_span, 1e-9)) * zoom
+    return {"yaw": yaw, "pitch": pitch, "distance": distance, "focal": focal,
+            "center": (width / 2, height / 2 + 4)}
 
 
 def effort_volume(effort):
@@ -202,9 +239,9 @@ def show_design(service, analysis_id):
     selected = None
     loading = False
     camera = {"yaw": 0.6, "pitch": -0.35, "zoom": 1.0}
-    rendered = {"faces": [], "centers": []}
+    rendered = {"faces": [], "centers": [], "scene": None, "image": None, "redraw": None}
     root = tk.Tk()
-    root.title("AgentGranule · 模块与设计力度")
+    root.title("AgentGranule · 同图 3D 模块与设计力度")
     root.geometry("1120x780")
     root.minsize(900, 680)
     root.configure(bg="#f3f5f0")
@@ -226,7 +263,7 @@ def show_design(service, analysis_id):
     tree_frame = ttk.Frame(left)
     tree_frame.pack(fill="both", expand=True)
     tree = ttk.Treeview(tree_frame, columns=("effort", "state"), show="tree headings", selectmode="browse", height=11)
-    tree.heading("#0", text="任务模块")
+    tree.heading("#0", text="任务模块 · 全部同图")
     tree.heading("effort", text="当前方向")
     tree.heading("state", text="任务状态")
     tree.column("#0", width=168, minwidth=130)
@@ -258,17 +295,18 @@ def show_design(service, analysis_id):
     summary = tk.Text(left, height=5, width=34, wrap="word", relief="flat", padx=8, pady=8)
     summary.insert("1.0", pending["summary"])
     summary.pack(fill="x")
+    ttk.Label(right, text="同一张 3D 图 · 全部模块", font=("Microsoft YaHei UI", 12, "bold")).pack(anchor="w")
     toolbar = ttk.Frame(right)
     toolbar.pack(fill="x")
     ttk.Label(toolbar, text="处理方向").pack(side="left")
     direction_var = tk.StringVar()
     direction_picker = ttk.Combobox(toolbar, textvariable=direction_var, state="readonly", width=22)
     direction_picker.pack(side="left", padx=8)
-    ttk.Label(toolbar, text="拖动旋转 · 滚轮缩放 · 单击选择", foreground="#617369").pack(side="right")
+    ttk.Label(toolbar, text="拖动旋转 · 滚轮缩放 · 重叠处可选模块", foreground="#617369").pack(side="right")
     canvas = tk.Canvas(right, background="#f0f5f1", highlightthickness=1,
                        highlightbackground="#d9e4db", width=620, height=370)
     canvas.pack(fill="both", expand=True, pady=(8, 6))
-    legend = ttk.Label(right, text="体积表示当前方向的设计力度；虚线为父关系，箭头为执行依赖。\n待分配为固定占位体积；0.00 仍可见。尺寸不表示质量、资源消耗或重要性。",
+    legend = ttk.Label(right, text="所有半透明模块片区共享同一场景；重叠只表示同图展示。固定厚度下，面积和体积随当前方向的力度变化。\n待分配为占位尺寸；0.00 仍可见；不适用方向用灰色。虚线为父关系，箭头为执行依赖。",
                        foreground="#64786b", justify="left", wraplength=620)
     legend.pack(anchor="w")
     allocation = ttk.LabelFrame(right, text="选中模块的设计力度 · 0.00–1.00", padding=10)
@@ -321,22 +359,34 @@ def show_design(service, analysis_id):
 
     def draw(*_):
         canvas.delete("all")
+        rendered.update(faces=[], centers=[], scene=None)
         if not modules():
             return
         width, height = max(1, canvas.winfo_width()), max(1, canvas.winfo_height())
         try:
-            positions = module_positions(modules())
+            positions = region_positions(modules())
         except GranuleError as exc:
             canvas.create_text(width / 2, height / 2, text=str(exc), fill="#aa4e3c", width=width - 40)
             return
-        extent = max((math.sqrt(sum(v * v for v in point)) for point in positions.values()), default=0)
-        args = dict(yaw=camera["yaw"], pitch=camera["pitch"], distance=max(8, extent * 1.5 + 6),
-                    focal=min(width, height) * 1.25 * camera["zoom"], center=(width / 2, height / 2 - 10))
-        centers = {key: project_point(point, **args) for key, point in positions.items()}
-        projected = {module["id"]: [project_point(point, **args) for point in
-                     cube_vertices(positions[module["id"]], selected_effort(module))] for module in modules()}
-        radii = {key: max(math.hypot(point[0] - centers[key][0], point[1] - centers[key][1])
-                         for point in points) for key, points in projected.items()}
+        # Fit to the maximum possible extent, so moving an effort slider changes
+        # a region's size without automatically zooming the camera back out.
+        args = fitted_scene_camera(positions, width, height, **camera)
+        ids = sorted(module["id"] for module in modules())
+        colors = {key: REGION_COLORS[index % len(REGION_COLORS)] for index, key in enumerate(ids)}
+        region_specs = [{"module_id": module["id"], "center": positions[module["id"]],
+                         "effort": selected_effort(module),
+                         "color": colors[module["id"]] if direction_var.get() in module["directions"] else (150, 161, 157)}
+                        for module in modules()]
+        scene = render_scene(region_specs, args, width, height, pixel_step=6 if drag["active"] else 3)
+        image = tk.PhotoImage(master=root, data=scene["ppm"], format="PPM").zoom(scene["pixel_step"])
+        rendered["image"] = image  # Tk does not hold the Python image reference.
+        canvas.create_image(0, 0, image=image, anchor="nw", tags=("module-scene",))
+        centers = {key: (x, y, depth) for key, x, y, depth in scene["centers"]}
+        faces = scene["faces"]
+        projected = {key: [point for face in faces if face["module_id"] == key for point in face["points"]]
+                     for key in ids}
+        radii = {key: max((math.hypot(point[0] - centers[key][0], point[1] - centers[key][1])
+                          for point in points), default=0) for key, points in projected.items()}
 
         def edge_points(source, target):
             start, end = centers[source], centers[target]
@@ -356,29 +406,54 @@ def show_design(service, analysis_id):
                 if dep in centers:
                     canvas.create_line(*edge_points(dep, module["id"]), arrow="last", arrowshape=(10, 12, 5),
                                        fill="#64887b", width=2)
-        faces = []
+        # Show the thickness of the selected region even where translucent
+        # surfaces overlap. The raster itself uses actual depth and alpha blend.
+        if selected in projected:
+            for face in faces:
+                if face["module_id"] == selected:
+                    canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point[:2]),
+                                          fill="", outline="#285a4c", width=2)
+        labels = module_label_positions(scene["centers"], width, height)
+        rendered["labels"] = []
+        from tkinter import font as tkfont
+        label_font = tkfont.Font(root=root, family="Microsoft YaHei UI", size=9)
         for module in modules():
-            points = projected[module["id"]]
-            applicable = direction_var.get() in module["directions"]
-            for i, indices in enumerate(CUBE_FACES):
-                face = {"module_id": module["id"], "points": [points[index][:2] for index in indices],
-                        "depth": sum(points[index][2] for index in indices) / 4}
-                face["color"] = (("#73a98c", "#4f876d", "#89bca1", "#a3cbb4", "#5d957b", "#79ae93")[i]
-                                 if applicable and selected_effort(module) is not None else
-                                 ("#c9d3ca", "#adbdb0", "#d5dfd6", "#e0e7e0", "#bccbbc", "#c4d3c5")[i])
-                faces.append(face)
-        for face in sorted(faces, key=lambda item: item["depth"], reverse=True):
-            canvas.create_polygon(*(coordinate for point in face["points"] for coordinate in point),
-                                  fill=face["color"], outline="#23664d" if face["module_id"] == selected else "#839c8a",
-                                  width=3 if face["module_id"] == selected else 1)
-        for module in sorted(modules(), key=lambda item: centers[item["id"]][2], reverse=True):
-            x, y, _ = centers[module["id"]]
-            effort = selected_effort(module)
-            value = "不适用" if direction_var.get() not in module["directions"] else ("待分配" if effort is None else f"{effort:.2f}")
-            canvas.create_text(x, y + 6, text=module["name"] + "\n" + value, fill="#1c4431", width=130,
-                               font=("Microsoft YaHei UI", 10, "bold"))
+            key = module["id"]
+            x, y, _ = centers[key]
+            number = ids.index(key) + 1
+            color = "#%02x%02x%02x" % colors[key]
+            label = labels[key]
+            if label["expanded"] or key == selected:
+                lx, ly = label["x"], label["y"]
+                left = lx if label["anchor"] == "w" else lx - 126
+                right_edge = left + 126
+                canvas.create_line(x, y, right_edge if label["anchor"] == "w" else left, ly,
+                                   fill=color, dash=() if selected_effort(module) is not None else (3, 2))
+                box = (left, ly - 19, right_edge, ly + 19)
+                canvas.create_rectangle(*box, fill="#ffffff", outline=color,
+                                        width=2 if key == selected else 1)
+                name = f"{number}. {module['name']}"
+                while label_font.measure(name) > 115 and len(name) > 4:
+                    name = name[:-2] + "…" if name.endswith("…") else name[:-1] + "…"
+                effort = selected_effort(module)
+                value = "不适用" if direction_var.get() not in module["directions"] else ("待分配" if effort is None else f"{effort:.2f}")
+                canvas.create_text(left + 63, ly, text=name + "\n" + value, fill="#24483c", font=label_font)
+                rendered["labels"].append((key, box))
+            canvas.create_oval(x - 9, y - 9, x + 9, y + 9, fill="#ffffff", outline=color,
+                               width=2 if key == selected else 1)
+            canvas.create_text(x, y, text=str(number), fill=color, font=("Microsoft YaHei UI", 8, "bold"))
+        canvas.create_text(14, 15, anchor="w", text=f"共享场景 · {len(modules())} 个模块 · {direction_var.get()}",
+                           fill="#365747", font=("Microsoft YaHei UI", 10, "bold"))
         rendered["faces"] = faces
-        rendered["centers"] = [(key, *point) for key, point in centers.items()]
+        rendered["centers"] = scene["centers"]
+        rendered["scene"] = scene
+
+    def schedule_draw(*_):
+        if rendered["redraw"] is None:
+            def redraw():
+                rendered["redraw"] = None
+                draw()
+            rendered["redraw"] = root.after(35, redraw)
 
     def select_module(key):
         nonlocal selected, loading
@@ -407,20 +482,22 @@ def show_design(service, analysis_id):
             source = {"module": "模块设置", "project_default": "项目默认建议", "builtin_default": "内置建议"}.get(control["source"], control["source"])
             effort_name.set(f"{module['name']} · {direction_var.get()} · {source} · 版本 {control['revision']}" +
                             ("\n待分配：当前数值仅供预览，拖动或点击应用后才计入清单。" if effort is None else f"\n待确认值 {effort:.2f}；提交前可继续修改。"))
-        draw()
+        schedule_draw()
 
     def refresh_tree():
         tree.delete(*tree.get_children())
+        ordered_ids = sorted(module["id"] for module in modules())
         for module in modules():
             effort = selected_effort(module)
             label = "不适用" if direction_var.get() not in module["directions"] else ("待分配" if effort is None else f"{effort:.2f}")
-            tree.insert("", "end", iid=module["id"], text=module["name"], values=(label, task_state(module)))
+            tree.insert("", "end", iid=module["id"], text=f"{ordered_ids.index(module['id']) + 1}. {module['name']}",
+                        values=(label, task_state(module)))
         if selected and module_by_id(selected):
             tree.selection_set(selected)
         if model:
             count = len(model.unassigned())
             status(f"还有 {count} 个模块／方向待分配。所有预览只保存在窗口中；最终确认后统一写入。")
-        draw()
+        schedule_draw()
 
     def apply_value(*_, from_scale=False):
         if loading or model is None or selected is None:
@@ -684,16 +761,16 @@ def show_design(service, analysis_id):
 
     ttk.Button(bottom, text="取消", command=cancel).pack(side="left")
     ttk.Button(bottom, text="重新加载", command=load_state).pack(side="left", padx=8)
-    ttk.Button(bottom, text="重置视角", command=lambda: (camera.update(yaw=0.6, pitch=-0.35, zoom=1.0), draw())).pack(side="left")
+    ttk.Button(bottom, text="重置视角", command=lambda: (camera.update(yaw=0.6, pitch=-0.35, zoom=1.0), schedule_draw())).pack(side="left")
     confirm = ttk.Button(bottom, text="确认模块清单 →", command=confirm_phase)
     confirm.pack(side="right")
     tree.bind("<<TreeviewSelect>>", lambda _: select_module(tree.selection()[0]) if tree.selection() else None)
     direction_picker.bind("<<ComboboxSelected>>", lambda _: (refresh_tree(), select_module(selected)) if selected else refresh_tree())
-    canvas.bind("<Configure>", draw)
-    drag = {"start": None, "last": None, "moved": False}
+    canvas.bind("<Configure>", schedule_draw)
+    drag = {"start": None, "last": None, "moved": False, "active": False}
 
     def press(event):
-        drag.update(start=(event.x, event.y), last=(event.x, event.y), moved=False)
+        drag.update(start=(event.x, event.y), last=(event.x, event.y), moved=False, active=True)
 
     def motion(event):
         if drag["last"] is None:
@@ -704,19 +781,38 @@ def show_design(service, analysis_id):
         camera["yaw"] += dx * 0.009
         camera["pitch"] = max(-1.4, min(1.4, camera["pitch"] + dy * 0.009))
         drag["last"] = (event.x, event.y)
-        draw()
+        schedule_draw()
 
     def release(event):
+        drag["active"] = False
         if not drag["moved"]:
-            hit = pick_module((event.x, event.y), rendered["faces"], rendered["centers"])
-            if hit:
-                select_module(hit)
+            point = (event.x, event.y)
+            label_hits = [key for key, (left, top, right_edge, bottom_edge) in rendered.get("labels", [])
+                          if left <= event.x <= right_edge and top <= event.y <= bottom_edge]
+            hits = tuple(label_hits) if label_hits else (hit_regions(point, rendered["scene"])
+                                                       if rendered["scene"] is not None else ())
+            if len(hits) == 1:
+                select_module(hits[0])
+            elif hits:
+                menu = tk.Menu(root, tearoff=False)
+                menu.add_command(label=f"重叠处的 {len(hits)} 个模块 · 请选择", state="disabled")
+                menu.add_separator()
+                ordered_ids = sorted(module["id"] for module in modules())
+                for key in hits:
+                    module = module_by_id(key)
+                    label = f"{ordered_ids.index(key) + 1}. {module['name']} · {task_state(module)}"
+                    menu.add_command(label=label, command=lambda chosen=key: select_module(chosen))
+                try:
+                    menu.tk_popup(event.x_root, event.y_root)
+                finally:
+                    menu.grab_release()
         drag["last"] = None
+        schedule_draw()
 
     def zoom(event):
         delta = 1 if getattr(event, "num", None) == 4 or getattr(event, "delta", 0) > 0 else -1
         camera["zoom"] = max(0.3, min(3, camera["zoom"] * (1.12 if delta > 0 else 1 / 1.12)))
-        draw()
+        schedule_draw()
 
     canvas.bind("<ButtonPress-1>", press)
     canvas.bind("<B1-Motion>", motion)

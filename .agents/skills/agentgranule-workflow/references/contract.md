@@ -85,7 +85,7 @@ choices 示例：[{"module_id":"实际模块UUID","direction":"design","design_e
 python -m agentgranule.design_view --database ABSOLUTE_DATABASE_PATH --analysis-id ACTUAL_ANALYSIS_ID --output-file ABSOLUTE_NEW_CHOICE_JSON_PATH
 ```
 
-本地 Tk 3D 投影窗口支持模块清单审核／编辑、旋转、缩放、选择、方向切换，以及滑块和两位小数精确输入。相同几何体按体积线性映射设计力度，零值仍可见、待分配明确标记；不使用浏览器。模块清单批准前不能提交力度；preview 不写入设置，正式清单确认后才整批保存。取消返回 {"status":"cancelled"}；错误退出 2，不生成新的成功结果。
+本地 Tk 窗口将全部模块置于同一张 3D 图，以半透明、有固定厚度的倒角薄片区域展示，采用维恩图式层叠布局，不使用球体或浏览器。所有片区共享坐标系和相机，支持模块清单审核／编辑、整体旋转缩放、片区／标签选择、重叠处的全部模块选择菜单、方向切换，以及滑块和两位小数精确输入。固定厚度下按体积与平面面积线性映射设计力度，平面尺寸按平方根变化；零值仍可见、待分配明确标记。片区重叠仅为布局，不推断共同职责或依赖。模块清单批准前不能提交力度；preview 不写入设置，正式清单确认后才整批保存。取消返回 {"status":"cancelled"}；错误退出 2，不生成新的成功结果。
 
 每次使用新的结果文件，等待真实用户操作，不能自行操作确认按钮。只有进程成功退出、status=saved、analysis_id 对应本次图且数据库与 controls 一致才继续返回的 workflow_id；不要重复 create_workflow 或 save_allocation。首次确认模块图后取消力度，模块审核可能已保存，仍无力度批准。不能把取消或 GUI 报错解释为授权默认值。
 

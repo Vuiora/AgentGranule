@@ -12,7 +12,7 @@
 
 已由维护者合并的 [PR #9](https://github.com/Vuiora/AgentGranule/pull/9) 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项。
 
-`codex/module-design-3d` 的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 已实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，105 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，旋转／缩放查看 3D 模块、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)，新功能仍待人工 PR 审批。
+`codex/module-design-3d` 的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 已实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，114 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，在同一张图中旋转／缩放查看半透明模块薄片、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)，新功能仍待人工 PR 审批。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
@@ -34,6 +34,8 @@
 设计力度使用 `python -m agentgranule.slider --parameter design_effort`，滑块每步 0.01，始终显示两位小数；API／CLI／MCP 使用 `parameters={"design_effort": 0.37}`。每种模式仅修改所选参数，其他设置保留。数值超界、非数字或不在 0.01 网格上的输入会被拒绝，不自动舍入；JSON 数值的 `0.50` 和 `0.5` 等价。
 
 完整的原生 3D 模块审核与力度分配可在项目目录启动：
+
+所有模块在同一张可旋转的 3D 图中以半透明薄片区域显示，采用维恩图式层叠布局；不使用球体。拖动旋转、滚轮缩放、点击片区或标签选中，重叠处可选择各个模块；力度滑块改变片区面积，0.00 和待分配仍可见。片区重叠不推断模块职能交集。
 
 ```powershell
 .venv\Scripts\python.exe -X utf8 examples\design_framework.py

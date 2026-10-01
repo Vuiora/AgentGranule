@@ -5,7 +5,9 @@ import unittest
 from agentgranule.core import GranuleError
 from agentgranule.design_view import (AllocationModel, MAX_VOLUME, MIN_VOLUME,
     PLACEHOLDER_VOLUME, cube_vertices, effort_volume, module_positions,
-    parse_effort_text, pick_module, point_in_polygon, project_point)
+    fitted_scene_camera, module_label_positions, parse_effort_text,
+    pick_module, point_in_polygon, project_point)
+from agentgranule.venn import region_positions, region_vertices
 
 
 class GeometryTests(unittest.TestCase):
@@ -74,6 +76,29 @@ class GeometryTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(GranuleError):
                 parse_effort_text(invalid)
         self.assertEqual(parse_effort_text("0e-999999999"), 0)
+
+    def test_shared_diagram_fits_all_maximum_regions_across_camera_angles(self):
+        for count in (12, 100):
+            positions = region_positions([{"id": f"module-{i}"} for i in range(count)])
+            for width, height in ((480, 210), (620, 370), (1000, 600)):
+                for yaw, pitch in ((0, 0), (0.6, -0.35), (2, 1.2), (-2, -1.2)):
+                    camera = fitted_scene_camera(positions, width, height, yaw=yaw, pitch=pitch)
+                    for position in positions.values():
+                        for vertex in region_vertices(position, 1):
+                            x, y, _ = project_point(vertex, **camera)
+                            self.assertTrue(0 <= x <= width and 0 <= y <= height,
+                                            (count, width, height, yaw, pitch, x, y))
+
+    def test_callouts_keep_all_modules_and_use_list_when_crowded(self):
+        centers = [(f"module-{i}", 200, 50 + i * 5, 10) for i in range(8)]
+        labels = module_label_positions(centers, 620, 420)
+        self.assertEqual(set(labels), {p[0] for p in centers})
+        self.assertTrue(all(label["expanded"] for label in labels.values()))
+        rows = sorted(label["y"] for label in labels.values())
+        self.assertGreaterEqual(min(b - a for a, b in zip(rows, rows[1:])), 38)
+        crowded = module_label_positions(centers * 1 + [(f"extra-{i}", 200, 50, 10) for i in range(32)], 620, 370)
+        self.assertEqual(len(crowded), 40)
+        self.assertTrue(all(not label["expanded"] for label in crowded.values()))
 
 
 class AllocationModelTests(unittest.TestCase):

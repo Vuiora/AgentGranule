@@ -12,7 +12,7 @@
 
 已由维护者合并的 [PR #9](https://github.com/Vuiora/AgentGranule/pull/9) 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项。
 
-`codex/module-design-3d` 的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 已实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，114 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，在同一张图中旋转／缩放查看半透明模块薄片、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)，新功能仍待人工 PR 审批。
+`codex/module-design-3d` 的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 已实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，116 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，在同一张图中旋转／缩放查看半透明模块薄片、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)，新功能仍待人工 PR 审批。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 

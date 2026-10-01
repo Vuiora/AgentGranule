@@ -8,7 +8,7 @@ import copy
 import unittest
 from unittest.mock import patch
 
-from agentgranule.design_view import point_in_polygon, show_design
+from agentgranule.design_view import point_in_polygon, show_design_tk as show_design
 from agentgranule.venn import hit_regions, render_treemap_scene
 
 

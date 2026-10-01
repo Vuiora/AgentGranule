@@ -1,8 +1,8 @@
-"""Native task-module review, 3D projection and explicit human allocation.
+"""Native task-module review and explicit human allocation.
 
-The canvas partitions one 3D plate by normalized display effort shares.
-Only the two confirmation callbacks persist an accepted graph or allocation.
-Geometry and the pending allocation model are independent of Tk.
+The default window uses Qt/OpenGL meshes at the native framebuffer resolution.
+The legacy Tk software preview remains an explicit compatibility option.
+Only human confirmation callbacks persist a graph or allocation.
 """
 
 from __future__ import annotations
@@ -228,7 +228,7 @@ class DesignControl:
             return Workflow(project).workflow_status(workflow_id)
 
 
-def show_design(service, analysis_id):
+def show_design_tk(service, analysis_id):
     import tkinter as tk
     from tkinter import messagebox, ttk
 
@@ -242,7 +242,7 @@ def show_design(service, analysis_id):
     camera = {"yaw": 0.6, "pitch": 0.6, "roll": -0.97, "zoom": 1.0}
     rendered = {"faces": [], "centers": [], "scene": None, "image": None, "redraw": None}
     root = tk.Tk()
-    root.title("AgentGranule · 立体模块与100%占比")
+    root.title("AgentGranule · 软件兼容预览（Tk）")
     screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
     window_width = min(1120, max(480, screen_width - 80))
     window_height = min(780, max(420, screen_height - 120))
@@ -880,16 +880,30 @@ def show_design(service, analysis_id):
     return result
 
 
+def show_design(service, analysis_id):
+    """Load the native OpenGL window only when an actual GUI is requested."""
+    try:
+        from .qt_design_view import show_design_qt
+    except ImportError as exc:
+        raise GranuleError('原生 3D 界面需要图形依赖；请运行 python -m pip install -e ".[design]"') from exc
+    return show_design_qt(service, analysis_id)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="AgentGranule native module analysis and 3D allocation")
     parser.add_argument("--database", default=".agentgranule/project.sqlite3")
     parser.add_argument("--analysis-id", required=True)
     parser.add_argument("--output-file", help="A unique new result path for the local Skill host")
+    parser.add_argument("--renderer", choices=("opengl", "tk"), default="opengl",
+                        help="Native OpenGL by default; tk explicitly selects the legacy software preview")
     args = parser.parse_args(argv)
     try:
         if args.output_file and Path(args.output_file).exists():
             raise GranuleError("Result path already exists; use a unique new output file")
-        result = show_design(DesignControl(args.database), args.analysis_id)
+        if args.output_file and not Path(args.output_file).parent.is_dir():
+            raise GranuleError("Result directory does not exist; create it before opening the window")
+        window = show_design_tk if args.renderer == "tk" else show_design
+        result = window(DesignControl(args.database), args.analysis_id)
         if not isinstance(result, dict) or result.get("status") not in ("saved", "cancelled"):
             raise GranuleError("Design view did not return an explicit saved/cancelled result")
         rendered_result = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False)

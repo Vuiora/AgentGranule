@@ -11,10 +11,24 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ['3.11', '3.14']
     runs-on: ${{ matrix.os }}
+    env:
+      AGENTGRANULE_REQUIRE_OPENGL: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m pip install -e ".[yaml,mcp]"
-      - run: python -m unittest discover -s tests -v
+      - run: python -m pip install -e ".[yaml,mcp,design]"
+      - name: Install Linux graphics runtime
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0
+      - name: Test real OpenGL and native UI on Linux
+        if: runner.os == 'Linux'
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a --server-args="-screen 0 1600x1000x24" python -m unittest discover -s tests -v
+      - name: Test real OpenGL and native UI on Windows
+        if: runner.os == 'Windows'
+        env:
+          QT_OPENGL: software
+        run: python -m unittest discover -s tests -v

@@ -13,6 +13,7 @@ dependencies = []
 [project.optional-dependencies]
 yaml = ["PyYAML>=6.0.2,<7"]
 mcp = ["mcp>=1.28,<2"]
+design = ["PySide6>=6.10,<7"]
 
 [project.scripts]
 agentgranule = "agentgranule.cli:main"

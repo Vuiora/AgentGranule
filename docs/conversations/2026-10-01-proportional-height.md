@@ -117,3 +117,11 @@
 示例占比为 50%、25%、25%：
 
 ![立体模块渲染示例](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/.agentgranule/height-cuboids-final.png)
+
+## 助手（交付前后续进度原文）
+
+修正版代码的跨平台 CI 已全部通过。最后一次提交只补充了 PR 链接和对话记录，代码未变；正在等待这次提交剩余的两项 Windows 检查完成。
+
+## 交付前工具核对补记（执行摘要）
+
+最终远端head=c2551657dc49ff7bd4fa9bc3111396f4565060b5，相对代码提交a1bf330仅补充README、分支说明和本文件；该head的push／pull_request两组Ubuntu／Windows、Python3.11／3.14共8项CI全部SUCCESS，两组run均completed/success。PR #12仍OPEN、base=main、autoMergeRequest=null，保留milestone #2，不合并。修正版窗口已正常取消／关闭，结果cancelled、退出0；图approved/revision=4、真实已分配0项、workflow_id=null，不将预览或取消当作人工分配。最终PNG由当前真实渲染器使用示例力度1.00／0.50／0.50生成并查看，未改数据库；只是展示渲染效果，不是人工选择记录。实际最终回复采用上方预录原文；本次CI核对及后续进度追加到本地对话记录与runtime消息存储，不为记录末尾再次触发同代码的重复CI。

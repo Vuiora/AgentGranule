@@ -14,7 +14,9 @@
 
 已由维护者合并的 [PR #10](https://github.com/Vuiora/AgentGranule/pull/10) 实现“框架模块分析 → 原生 3D 模块展示 → 调用者人工分配设计力度”完整流程，116 项自动测试通过。静态分析真实源码生成待审核清单，调用者可编辑模块和依赖，在同一张图中旋转／缩放查看半透明模块薄片、逐项分配 0.01 小数力度、审核整份清单并原子保存，再继续工作流。见 [运行说明](docs/module-design-3d.md) 与 [TODO 实施状态](docs/module-design-3d-todo.md)。
 
-`codex/proportional-module-height` 基于维护者已合并 [PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 的 main，通过 [PR #12](https://github.com/Vuiora/AgentGranule/pull/12) 新增清晰的立体长方体显示：设计力度作为权重，底面分区合计 100.00%，真实高度随占比线性增长。提高一模块会让它显示更大、更高，其余显示更小、更低；其他原始力度保持独立。默认视角呈现地面、亮顶面、暗侧面和竖边，柱体在自己的分区内留边，避免遮住邻块。161 项自动测试通过，本轮待人工 PR 审批，归入 [v0.2 milestone](https://github.com/Vuiora/AgentGranule/milestone/2)。
+`codex/proportional-module-height` 基于已合并 [PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 的main，按[PR #12](https://github.com/Vuiora/AgentGranule/pull/12)维护者“分辨率低、并非真3D”的批注返工为PySide6/OpenGL原生界面：直接绘制真实XYZ网格、深度与法线光照，按窗口和DPI输出完整物理像素，旋转时不降采样。底面分区合计100.00%，高度随占比线性增长，其他原始力度保持独立；图形失败不能批准或静默回退旧预览。本轮待人工审查新head，归入[v0.2 milestone](https://github.com/Vuiora/AgentGranule/milestone/2)。
+
+189项本地自动测试通过，包括实际OpenGL framebuffer、Qt人工确认、独立进程正常退出及核心／MCP／CLI回归。本机150%缩放下800×600视口直接输出1200×900图像；奇数尺寸931×611对应1397×917也已验证。真实硬件与软件OpenGL均走完整3D网格管线，见[运行与渲染示例](docs/module-design-3d.md)。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
@@ -40,6 +42,7 @@
 所有模块在同一张可旋转的 3D 图中拼成紧凑矩形板面；不使用球体。当前方向的力度按 `占比=模块力度/适用模块力度之和` 显示，底面分区面积合计 100%，显示的两位小数百分比也合计 100.00%；立体高度也随该占比线性增大。例如三个模块力度为 1.00、0.50、0.50，占比为 50%、25%、25%，分区面积和高度之比均为2:1:1；改变其中一个不会改写其他模块的原始力度。长方体在各自分区内统一内缩，保留可辨的顶面、侧面与竖边，柱体底面积之比也保持同一比例；凸起越出所属投影片区的部分裁剪，避免遮住邻块。拖动旋转、滚轮缩放、点击拼块或左侧清单选中；0 占比有独立选择标记且高度为0。未分配按明确标识的 0.50 临时预览，全部力度为0时临时等分，这些预览均不代表人工设置。
 
 ```powershell
+.venv\Scripts\python.exe -m pip install -e ".[design,mcp]"
 .venv\Scripts\python.exe -X utf8 examples\design_framework.py
 ```
 
@@ -50,7 +53,7 @@
 ```sh
 python -m venv .venv
 # 激活虚拟环境后执行
-python -m pip install -e ".[mcp]"
+python -m pip install -e ".[mcp,design]"
 python -m unittest discover -s tests -v
 python -m agentgranule create_session '{"title":"问题 A"}'
 ```

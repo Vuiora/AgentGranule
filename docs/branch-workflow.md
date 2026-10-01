@@ -23,7 +23,9 @@ main
 
 ## 审批规则
 
-PR #11 尚未合并。用户进一步要求紧凑同图100%占比，并明确仅归一化显示、保留原始力度；继续 `codex/unrelated-module-layout` 更新该 PR 的标题、范围和验证证据，不创建重复 PR。布局与渲染变更后须对新 head SHA 重新人工审批。
+[PR #12](https://github.com/Vuiora/AgentGranule/pull/12)曾被维护者关闭，要求修复低分辨率和真正3D展示，没有通过审批记录。本轮继续codex/proportional-module-height返工为原生Qt/OpenGL网格和完整物理像素，完成实际窗口、DPI、GPU隔离、独立进程退出和人工确认回归后重新打开同PR供审查；不创建重复PR，不合并或启用自动合并，审批必须关联新head SHA。
+
+前轮PR #11开发时，用户要求紧凑同图100%占比，并明确仅归一化显示、保留原始力度；在codex/unrelated-module-layout完成并由维护者合并。其布局与渲染审批记录保留，不能代替本轮新代码的审批。
 
 用户最新明确确认“3D 立体高度随占比增大”。交付前核对发现PR #11已由维护者于2026-10-01 20:05（Asia/Shanghai）合并，main为4d7d6848ffeb603f791c4516957a8bb31f735725且包含前分支head。本轮从该main创建codex/proportional-module-height，以[PR #12](https://github.com/Vuiora/AgentGranule/pull/12)追加真实长方体、所属片区裁剪及固定相机，不修改已合并PR的范围；底面归一化与原始力度保存契约不变。新PR继续关联v0.2 milestone，仍须人工审查当前head SHA，不执行合并。
 

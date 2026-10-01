@@ -117,3 +117,13 @@
 ## 助手（原文）
 
 原生窗口检查通过：101 个刻度都显示对应的两位小数，关闭后没有写入设置。独立审查发现宿主降低 Decimal 精度时可能发生意外舍入，已改为整数校验并补上回归测试，现有 70 项测试全部通过。TODO 蓝图已完成，接下来提交分支和待审批 PR。
+
+## 工具调用与结果（执行摘要）
+
+- git add 明确暂存本轮 17 个文件，git diff --cached --check 通过；既有 2026-09-30 日志仍保留未暂存。提交 a77b5da00fce344be60a01f9e97d53cacf7d65f3 并推送 codex/decimal-granularity。
+- 首次 gh pr create 使用父分支 codex/granularity-slider 失败：GitHub 报告 Base ref must be a branch，未创建 PR。随后 gh pr view 8 与远端 heads 查询证实维护者已在开发期间合并 #8，父分支已删除；远端 main=e8b4b09755a4d802ce27925f519104c9b8e12cc5。
+- 同步 main 并核对差异，改为以 main 创建本轮 PR；本轮没有执行任何合并。open_in_codex 打开 TODO 文件请求返回 queued，不能声称用户已查看。
+
+## 助手（原文）
+
+刚才创建 PR 时，GitHub 显示父分支已删除；重新检查确认，维护者已在本轮期间合并 PR #8。因此新 PR 会直接以 `main` 为目标，只包含这次的小数粒度和 TODO 改动。我会同步更新审批记录。

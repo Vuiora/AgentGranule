@@ -8,9 +8,9 @@
 
 [第一轮算法 PR #5](https://github.com/Vuiora/AgentGranule/pull/5) 已合并；其 41 项本地测试与四组合 CI 通过。
 
-[整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。`codex/granularity-slider` 按远端批注返工为原生小弹窗，61 项本地测试通过；原网页 PR #7 已关闭且未合并。
+[整体任务 Skill](.agents/skills/agentgranule-workflow/SKILL.md) 与 MCP 衔接已通过 [PR #6](https://github.com/Vuiora/AgentGranule/pull/6) 由人工合并，支持人工粒度交互、持久化任务图、依赖调度、结果提交、重启恢复和局部重算；启用见 [接入说明](docs/skill-mcp-workflow.md)。按远端批注返工的原生小弹窗 [PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已由人工合并，其 61 项本地测试通过；原网页 PR #7 已关闭且未合并。
 
-`codex/decimal-granularity` 在待合并的弹窗分支上新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项。下一轮的“框架模块分析 → 3D 模块展示 → 调用者人工分配设计力度”见 [TODO 蓝图](docs/module-design-3d-todo.md)，3D 展示尚未实现。
+`codex/decimal-granularity` 新增 `design_effort`：0.00–1.00、步长 0.01，保留原有详细程度选项；父 #8 合并后直接以 main 为审批目标。下一轮的“框架模块分析 → 3D 模块展示 → 调用者人工分配设计力度”见 [TODO 蓝图](docs/module-design-3d-todo.md)，3D 展示尚未实现。
 
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 

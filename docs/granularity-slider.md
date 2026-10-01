@@ -1,10 +1,10 @@
 # 粒度小弹窗
 
-按 [PR #7 的维护者批注](https://github.com/Vuiora/AgentGranule/pull/7#issuecomment-5912236674) 返工：取消网页界面，改为原生小弹窗，优化配色、留白、提示和按钮，只显示详细程度滑块，不展示列举数目模块。#7 已关闭且未合并；返工仍在 codex/granularity-slider 分支。
+按 [PR #7 的维护者批注](https://github.com/Vuiora/AgentGranule/pull/7#issuecomment-5912236674) 返工：取消网页界面，改为原生小弹窗，优化配色、留白、提示和按钮，只显示详细程度滑块，不展示列举数目模块。#7 已关闭且未合并。
 
-[返工 PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已提交，等待人工审批当前 head SHA。
+[返工 PR #8](https://github.com/Vuiora/AgentGranule/pull/8) 已由维护者合并。
 
-本轮在 `codex/decimal-granularity` 新增设计力度模式，遵循用户确认的 0.00–1.00 范围、0.01 步长；基于仍待合并的 #8，单独审批。3D 模块展示属于 [下一轮 TODO](module-design-3d-todo.md)。
+本轮在 `codex/decimal-granularity` 新增设计力度模式，遵循用户确认的 0.00–1.00 范围、0.01 步长；父 #8 合并后直接申请合入 main，单独审批。3D 模块展示属于 [下一轮 TODO](module-design-3d-todo.md)。
 
 ## 使用
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import uuid4
 
@@ -19,6 +20,24 @@ def _text(value: str, field: str) -> str:
     return value
 
 
+def _design_effort_units(value) -> int:
+    """Validate a JSON number on the 0.00–1.00 hundredth grid, without rounding."""
+    if type(value) not in (int, float):
+        raise GranuleError("design_effort must be a number from 0.00 to 1.00 in steps of 0.01")
+    try:
+        decimal = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise GranuleError("design_effort must be a finite number") from exc
+    if not decimal.is_finite() or not 0 <= decimal <= 1:
+        raise GranuleError("design_effort must be from 0.00 to 1.00")
+    # Integer ratios stay exact even if the host lowers its Decimal context precision.
+    numerator, denominator = decimal.as_integer_ratio()
+    units, remainder = divmod(numerator * 100, denominator)
+    if remainder:
+        raise GranuleError("design_effort must use steps of 0.01; no automatic rounding")
+    return units
+
+
 def _parameters(value: dict) -> dict:
     if not isinstance(value, dict) or not value or any(not isinstance(k, str) or not k.strip() for k in value):
         raise GranuleError("parameters must be a non-empty object with non-empty string keys")
@@ -27,6 +46,8 @@ def _parameters(value: dict) -> dict:
             raise GranuleError(f"{key} must be a positive integer")
     if "detail_level" in value:
         _text(value["detail_level"], "detail_level")
+    if "design_effort" in value:
+        value = {**value, "design_effort": _design_effort_units(value["design_effort"]) / 100}
     try:
         # Copy caller-owned structures and reject non-JSON data / non-finite numbers.
         return json.loads(json.dumps(value, ensure_ascii=False, allow_nan=False))

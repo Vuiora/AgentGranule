@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from .core import GranuleError, Project, _parameters, _text
 
 
-ALGORITHM_VERSION = "round-1-v1"
+ALGORITHM_VERSION = "round-1-v2"
 
 
 def _json(value):
@@ -81,7 +81,7 @@ def topological_order(tasks: Iterable[Task]) -> list[Task]:
 def compile_constraints(parameters: dict) -> dict:
     """Compile concrete constraints without equating granularity with a number.
 
-    Semantic detail labels and custom parameters remain explicit handler inputs.
+    Semantic detail labels, design effort and custom parameters remain explicit handler inputs.
     item_count and max_depth have mechanical output checks in this iteration.
     """
     parameters = _parameters(parameters)
@@ -89,9 +89,10 @@ def compile_constraints(parameters: dict) -> dict:
         "item_count": parameters.get("count"),
         "detail_level": parameters.get("detail_level"),
         "max_depth": parameters.get("max_depth"),
+        "design_effort": parameters.get("design_effort"),
         "output_kind": "items" if "count" in parameters else "text",
         "custom": {key: value for key, value in parameters.items()
-                   if key not in {"count", "detail_level", "max_depth"}},
+                   if key not in {"count", "detail_level", "max_depth", "design_effort"}},
     }
 
 

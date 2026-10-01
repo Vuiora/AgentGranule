@@ -81,8 +81,10 @@ class PopupTests(unittest.TestCase):
     def test_cancel_reports_to_skill_without_setting_mutation(self):
         before = self.service.load(self.module, "explanation")
         output = str(Path(self.tmp.name) / "choice.json")
-        with patch("agentgranule.slider.show_popup", return_value={"status": "cancelled"}):
-            self.assertEqual(main(["--database", self.db, "--module-id", self.module, "--output-file", output]), 0)
+        with patch("agentgranule.slider.show_popup", return_value={"status": "cancelled"}) as popup:
+            self.assertEqual(main(["--database", self.db, "--module-id", self.module,
+                                   "--parameter", "design_effort", "--output-file", output]), 0)
+            self.assertEqual(popup.call_args.kwargs["parameter"], "design_effort")
         self.assertEqual(json.loads(Path(output).read_text(encoding="utf-8")), {"status": "cancelled"})
         self.assertEqual(self.service.load(self.module, "explanation"), before)
 

@@ -45,13 +45,18 @@ class MCPWorkflowTests(unittest.TestCase):
                     await call("record_message", session_id=session, role="assistant", content=question["question"])
                     await call("record_message", session_id=session, role="user", content="优点两项，总结用默认详细程度。")
                     await call("set_granularity", problem_id=module, direction="advantages",
-                               parameters={"count": 2, "max_depth": 1}, actor="test-human")
+                               parameters={"count": 2, "max_depth": 1, "design_effort": 0.37}, actor="test-human")
+                    invalid_effort = await client.call_tool("set_granularity", {
+                        "problem_id": module, "direction": "advantages", "parameters": {"design_effort": 0.375}, "actor": "test-human"})
+                    self.assertTrue(invalid_effort.isError)
+                    self.assertEqual((await call("get_granularity", problem_id=module, direction="advantages"))["parameters"]["design_effort"], 0.37)
                     created = await call("create_workflow", session_id=session, context={"facts": ["速度快", "便于审计"]},
                                          tasks=[{"id": "a", "module_id": module, "direction": "advantages"},
                                                 {"id": "z", "module_id": module, "direction": "explanation", "depends_on": ["a"]}])
                     wid = created["workflow_id"]
                     request = (await call("next_task", workflow_id=wid))["request"]
                     self.assertEqual(request["constraints"]["item_count"], 2)
+                    self.assertEqual(request["constraints"]["design_effort"], 0.37)
                     bad = await client.call_tool("submit_task", {"workflow_id": wid, "request_id": request["request_id"], "output": {"items": ["缺少一项"]}})
                     self.assertTrue(bad.isError)
                     bad_depth = await client.call_tool("submit_task", {"workflow_id": wid, "request_id": request["request_id"],
@@ -72,11 +77,12 @@ class MCPWorkflowTests(unittest.TestCase):
                     result = await call("submit_task", workflow_id=wid, request_id=summary["request_id"], output={"text": "材料显示速度与审计优势。"})
                     self.assertTrue(result["complete"])
                     self.assertIsNone((await call("next_task", workflow_id=wid))["request"])
-                    await call("set_granularity", problem_id=module, direction="advantages", parameters={"count": 1}, actor="test-human")
+                    await call("set_granularity", problem_id=module, direction="advantages", parameters={"count": 1, "design_effort": 0.38}, actor="test-human")
                     self.assertFalse((await call("workflow_status", workflow_id=wid))["complete"])
                     stale = await client.call_tool("submit_task", {"workflow_id": wid, "request_id": summary["request_id"], "output": {"text": "旧结果"}})
                     self.assertTrue(stale.isError)
                     request = (await call("next_task", workflow_id=wid))["request"]
+                    self.assertEqual(request["constraints"]["design_effort"], 0.38)
                     await call("submit_task", workflow_id=wid, request_id=request["request_id"], output={"items": ["便于审计"]})
                     summary = (await call("next_task", workflow_id=wid))["request"]
                     self.assertEqual(summary["inputs"]["a"]["items"], ["便于审计"])
@@ -98,8 +104,10 @@ class MCPWorkflowTests(unittest.TestCase):
                 return json.loads(process.stdout)["result"]
             session = call("create_session", title="CLI整体任务")
             module = call("add_module", session_id=session, description="说明材料")
+            call("set_granularity", problem_id=module, direction="explanation", parameters={"design_effort": 0.37}, actor="test-human")
             wid = call("create_workflow", session_id=session, tasks=[{"id": "a", "module_id": module, "direction": "explanation"}])["workflow_id"]
             request = call("next_task", workflow_id=wid)["request"]
+            self.assertEqual(request["constraints"]["design_effort"], 0.37)
             self.assertTrue(call("submit_task", workflow_id=wid, request_id=request["request_id"], output={"text": "材料说明"})["complete"])
             self.assertEqual(call("workflow_status", workflow_id=wid)["outputs"], {"a": {"text": "材料说明"}})
 

@@ -51,7 +51,7 @@ flowchart LR
 - 内置建议：分类／列举／优点／缺点方向为 `count=3, detail_level=standard`；其他方向为 `detail_level=standard`。3 和 standard 是可修改的产品初始建议，不是用户指定值。
 - `set_default_granularity(session_id, direction, parameters, actor)` 配置整个项目该方向的默认值，变更事件记录在指定会话；对其他会话同方向也生效。
 - 优先级：模块人工覆盖 > 项目该方向默认 > 内置建议。设置对象整体替换，未填写字段不做隐式合并。
-- `count` 和 `max_depth` 须为正整数，`detail_level` 为非空描述；其他参数须为有限 JSON 数据。
+- `count` 和 `max_depth` 须为正整数，`detail_level` 为非空描述；`design_effort` 须为 0.00–1.00 的 JSON 数字且落在 0.01 网格上，不自动舍入；其他参数须为有限 JSON 数据。
 - 当前框架自动校验数目、版本与结果基本格式；详细程度、深度和宿主自定义参数作为执行约束传给外部 Agent，未实现语义质量判定。
 - 原 count-only SQLite 数据自动迁移，消息与旧计划保留，`count`／`categories` 简写继续兼容。
 

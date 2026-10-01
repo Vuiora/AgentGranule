@@ -8,6 +8,9 @@ from .algorithms import Task, _json, compile_constraints, topological_order, val
 from .core import GranuleError, Project, _text
 
 
+WORKFLOW_VERSION = 2  # Explicit design_effort constraints supersede the old request schema.
+
+
 class Workflow:
     """One connection per caller, with atomic dispatch/acceptance and restart recovery."""
 
@@ -62,7 +65,7 @@ class Workflow:
             ready = all(dep in data["results"] for dep in task["depends_on"])
             fingerprint = None
             if ready:
-                provenance = {"workflow_version": 1, "task": task, "state": state,
+                provenance = {"workflow_version": WORKFLOW_VERSION, "task": task, "state": state,
                               "context": data["context"],
                               "dependencies": {dep: data["results"][dep]["receipt"] for dep in task["depends_on"]}}
                 fingerprint = hashlib.sha256(_json(provenance).encode("utf-8")).hexdigest()

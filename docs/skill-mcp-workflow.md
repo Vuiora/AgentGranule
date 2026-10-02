@@ -15,6 +15,8 @@ python -m agentgranule.mcp_server --database /absolute/path/project.sqlite3
 
 也可使用安装后的 `agentgranule-mcp --database ...`。此命令供客户端通过 stdio 启动，不是 HTTP 服务。stdout 仅用于 MCP 协议，SDK 日志输出到 stderr。配置模板见 [examples/mcp-client.json](../examples/mcp-client.json)，需把 Python 与数据库占位符替换为真实绝对路径，Python 环境必须已安装本项目。未连接 MCP 时 Skill 可调用相同操作的 JSON CLI。
 
+完整模块图窗口默认使用原生Qt/OpenGL，宿主的本地Python需安装`python -m pip install -e ".[mcp,design]"`。核心/MCP可单独安装mcp而不加载图形库；图形初始化失败必须明确反馈，不视为人工取消或批准，不静默使用旧低清预览。单项滑块继续使用Tk。
+
 ## 完整流程
 
 1. create_session → record_message 保存实际需求原文。

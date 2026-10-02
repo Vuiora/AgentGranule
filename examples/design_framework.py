@@ -6,21 +6,38 @@ caller in the window. Restart with --analysis-id to resume the same proposal.
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from uuid import uuid4
 
 from agentgranule import Design, Project, analyze_framework
-from agentgranule.design_view import show_design, DesignControl
+from agentgranule.design_view import main as design_main
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Review and allocate effort for a Python framework")
     parser.add_argument("--root", default=str(Path(__file__).resolve().parents[1]))
     parser.add_argument("--database", default=".agentgranule/project.sqlite3")
     parser.add_argument("--analysis-id", help="Resume an existing proposal without creating another session")
     parser.add_argument("--output-file")
-    args = parser.parse_args()
+    parser.add_argument("--renderer", choices=("opengl", "tk"), default="opengl")
+    args = parser.parse_args(argv)
+    try:
+        return _run(args)
+    except Exception as exc:
+        print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        return 2
+
+
+def _run(args):
     database = str(Path(args.database).resolve())
+    output = Path(args.output_file) if args.output_file else Path(database).parent / f"design-choice-{uuid4().hex}.json"
+    if output.exists():
+        print(json.dumps({"error": "Result path already exists; use a unique new output file"}), file=sys.stderr)
+        return 2
+    if args.output_file and not output.parent.is_dir():
+        print(json.dumps({"error": "Result directory does not exist; create it before opening the window"}), file=sys.stderr)
+        return 2
     with Project(database) as project:
         design = Design(project)
         if args.analysis_id:
@@ -32,11 +49,9 @@ def main():
             proposal = design.propose_analysis(session, result["analysis"])
             analysis_id = proposal["analysis_id"]
         print(json.dumps({"database": database, "analysis_id": analysis_id}, ensure_ascii=False), flush=True)
-    result = show_design(DesignControl(database), analysis_id)
-    output = Path(args.output_file) if args.output_file else Path(database).parent / f"design-choice-{uuid4().hex}.json"
-    output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"result": result, "output_file": str(output.resolve())}, ensure_ascii=False))
+    return design_main(["--database", database, "--analysis-id", analysis_id,
+                        "--output-file", str(output), "--renderer", args.renderer])
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

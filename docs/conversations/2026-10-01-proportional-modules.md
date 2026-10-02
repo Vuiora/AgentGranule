@@ -72,3 +72,11 @@
 已改为紧凑的同图 3D 拼块，显示占比合计 **100.00%**。提高一个模块的力度后，它变大、其他变小，其他模块的原始力度保持不变。
 
 新版窗口已打开。144 项测试通过，[PR #11](https://github.com/Vuiora/AgentGranule/pull/11) 已更新，待人工审批。
+
+## 助手（后续进度原文）
+
+新版窗口已可使用。最后一次提交只补充了对话记录，代码未再改动；正在核对该提交剩余的 Windows CI 检查。
+
+## 交付前工具核对补记（执行摘要）
+
+最终记录提交7ce090f20063fc17c1a6d1c4101fb5e35e4ec60c相对代码提交2fa2838只追加本文件。当前head的push／pull_request两组Ubuntu／Windows、Python3.11／3.14共8项CI全部通过。PR #11仍OPEN、base=main、milestone #2、autoMergeRequest=null。新版原生窗口仍运行、无结果文件；真实图approved、revision=4、workflow_id=null、已分配力度0项，没有将默认预览视为人工设置或启动依赖执行。实际最终回复采用上方预录原文。

@@ -60,13 +60,16 @@ class Workflow:
     def _save(self, workflow_id, data):
         self.project._db.execute("UPDATE workflows SET payload=? WHERE id=?", (_json(data), workflow_id))
 
-    def _refresh(self, workflow_id, session_id, data):
+    def _refresh(self, workflow_id, session_id, data, states=None):
         """Invalidate changed tasks and descendants in topological order under the lock."""
-        states, fingerprints = {}, {}
+        if states is None:
+            pairs = ((task["module_id"], task["direction"]) for task in data["tasks"])
+            states = {task["id"]: control for task, (_, control) in
+                      zip(data["tasks"], self.project._granularity_batch(pairs))}
+        fingerprints = {}
         for task in data["tasks"]:
             name = task["id"]
-            state = self.project.get_granularity(task["module_id"], task["direction"])
-            states[name] = state
+            state = states[name]
             ready = all(dep in data["results"] for dep in task["depends_on"])
             fingerprint = None
             if ready:
@@ -96,15 +99,19 @@ class Workflow:
         with self.project._db:
             self.project._db.execute("BEGIN IMMEDIATE")
             session_id, data = self._load(workflow_id)
+            stored_count = len(data["results"]) + len(data["requests"])
             _, fingerprints = self._refresh(workflow_id, session_id, data)
-            self._save(workflow_id, data)
+            if stored_count != len(data["results"]) + len(data["requests"]):
+                self._save(workflow_id, data)
             return self._report(workflow_id, data, fingerprints)
 
     def next_task(self, workflow_id: str) -> dict:
         with self.project._db:
             self.project._db.execute("BEGIN IMMEDIATE")
             session_id, data = self._load(workflow_id)
+            stored_count = len(data["results"]) + len(data["requests"])
             states, fingerprints = self._refresh(workflow_id, session_id, data)
+            changed = stored_count != len(data["results"]) + len(data["requests"])
             request = None
             for task in data["tasks"]:
                 name = task["id"]
@@ -120,10 +127,12 @@ class Workflow:
                                "inputs": {dep: data["results"][dep]["output"] for dep in task["depends_on"]},
                                "context": data["context"]}
                     data["requests"][name] = request
+                    changed = True
                     self.project._event(session_id, "workflow.task_dispatched", {
                         "workflow_id": workflow_id, "request": request})
                 break
-            self._save(workflow_id, data)
+            if changed:
+                self._save(workflow_id, data)
             return {**self._report(workflow_id, data, fingerprints), "request": request}
 
     def submit_task(self, workflow_id: str, request_id: str, output: dict) -> dict:
@@ -133,7 +142,7 @@ class Workflow:
         with self.project._db:
             self.project._db.execute("BEGIN IMMEDIATE")
             session_id, data = self._load(workflow_id)
-            _, fingerprints = self._refresh(workflow_id, session_id, data)
+            states, fingerprints = self._refresh(workflow_id, session_id, data)
             match = next(((name, req) for name, req in data["requests"].items()
                           if req["request_id"] == request_id), None)
             if match is None:
@@ -151,7 +160,7 @@ class Workflow:
             self.project._event(session_id, "workflow.result_submitted", {
                 "workflow_id": workflow_id, "request_id": request_id,
                 "output": output, "accepted": error is None, "error": error})
-            _, fingerprints = self._refresh(workflow_id, session_id, data)
+            _, fingerprints = self._refresh(workflow_id, session_id, data, states)
             self._save(workflow_id, data)
             report = self._report(workflow_id, data, fingerprints)
         if error:

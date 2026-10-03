@@ -1,0 +1,535 @@
+{
+  "benchmark_version": 1,
+  "created_at_utc": "2026-10-02T10:49:35.234405+00:00",
+  "git_head": "ffe339d216e1259020543cc762cedf813ab95378",
+  "python": "3.14.7 | packaged by Anaconda, Inc. | (main, Aug 14 2026, 10:12:46) [MSC v.1942 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "sqlite": "3.53.2",
+  "method": "Warm single-process medians; traced SELECT/write counts; synthetic disposable SQLite files; MCP uses FastMCP.call_tool, excludes transport and startup; inputs checked after every case",
+  "scenarios": [
+    {
+      "modules": 100,
+      "directions_per_module": 3,
+      "tasks": 300,
+      "synthetic_history_events": 10000,
+      "actual_event_rows": 10410,
+      "fixture_digest": "8064d7e90e6b073bff726d450a583ed55af088cac6fee3f670b70a62574b50bd",
+      "input_unchanged": true,
+      "input_digest": "b3e70563f0a3a05c729a075485f9b306ea939af5a6864c4eff7ea64dccd73242",
+      "operations": {
+        "project.get_granularity.override": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.0765,
+          "min_ms": 0.0737,
+          "max_ms": 0.0937,
+          "p95_ms": 0.0937,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "bdb16997efe8ce84ceab4484e28a3bf90321c766b6672265cb493ab1d773716a"
+        },
+        "project.get_granularity.project_default": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1024,
+          "min_ms": 0.0965,
+          "max_ms": 0.1192,
+          "p95_ms": 0.1192,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 3,
+              "min": 3,
+              "max": 3
+            }
+          },
+          "result_digest": "c386c13c28a9215dda7e11e568d40dd055f5ac80ddca190872783349d1a9ae14"
+        },
+        "project.get_granularity.builtin": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1003,
+          "min_ms": 0.0955,
+          "max_ms": 0.2314,
+          "p95_ms": 0.2314,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 3,
+              "min": 3,
+              "max": 3
+            }
+          },
+          "result_digest": "5a9062966e7d47653fd149a83c70b229e388647d38b7be87e9b366eb9a931ab7"
+        },
+        "design.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 8.9213,
+          "min_ms": 6.0086,
+          "max_ms": 11.2859,
+          "p95_ms": 11.2859,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 901,
+              "min": 901,
+              "max": 901
+            }
+          },
+          "result_digest": "9fd6d8289b8763d3f2bd133bb092a7f14914a55b90e4190abcea889d4e96722b"
+        },
+        "workflow.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 9.3228,
+          "min_ms": 8.5203,
+          "max_ms": 11.8186,
+          "p95_ms": 11.8186,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 601,
+              "min": 601,
+              "max": 601
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "27a2de5a57cac417c5d5eb0a102713ebaab3263f022c0b3152052b5980cec3c3"
+        },
+        "workflow.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 8.7742,
+          "min_ms": 6.8904,
+          "max_ms": 10.323,
+          "p95_ms": 10.323,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 601,
+              "min": 601,
+              "max": 601
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "1a38c7530d415419a57cc8da763cb8036f9a27d9e1c1291fee43450a26ab0722"
+        },
+        "mcp.get_granularity": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 1.0779,
+          "min_ms": 0.9959,
+          "max_ms": 1.3166,
+          "p95_ms": 1.3166,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "5fb2570dd7bec3c73f40f8128bff7cebdfb8a7fd9b16a4ae0ef5a5e9d0946724"
+        },
+        "mcp.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 9.6762,
+          "min_ms": 7.8619,
+          "max_ms": 10.8876,
+          "p95_ms": 10.8876,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 901,
+              "min": 901,
+              "max": 901
+            }
+          },
+          "result_digest": "b147d10dd29caa37a06d94e10ae0a814b7d587da40eba355835b1e4687f5f694"
+        },
+        "mcp.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 6.0449,
+          "min_ms": 5.3665,
+          "max_ms": 7.7965,
+          "p95_ms": 7.7965,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 601,
+              "min": 601,
+              "max": 601
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "38dfaf0329f6a693e6639311034fbf954c61529f7017fdd020cc173b0167c65e"
+        },
+        "mcp.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 7.3965,
+          "min_ms": 5.2828,
+          "max_ms": 9.9282,
+          "p95_ms": 9.9282,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 601,
+              "min": 601,
+              "max": 601
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "dfb254181afae2095b2a8daf347d1a63b75ecd5dfb99b6c6e29a8d9faade4982"
+        }
+      }
+    },
+    {
+      "modules": 500,
+      "directions_per_module": 3,
+      "tasks": 1500,
+      "synthetic_history_events": 50000,
+      "actual_event_rows": 52010,
+      "fixture_digest": "d060bed451d33d481ec409ad33cd13e15be4df74ebcaf9a9fb38a9bcb0c398c0",
+      "input_unchanged": true,
+      "input_digest": "29d846adf8db26088435a9c05fffe149b3fd6b92fc4a533d51fcc1d53f65f67c",
+      "operations": {
+        "project.get_granularity.override": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1057,
+          "min_ms": 0.1003,
+          "max_ms": 0.1795,
+          "p95_ms": 0.1795,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "bdb16997efe8ce84ceab4484e28a3bf90321c766b6672265cb493ab1d773716a"
+        },
+        "project.get_granularity.project_default": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1432,
+          "min_ms": 0.138,
+          "max_ms": 0.2662,
+          "p95_ms": 0.2662,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 3,
+              "min": 3,
+              "max": 3
+            }
+          },
+          "result_digest": "497f07834cd5d70793d8c4f7e86b2194a166415899e84fe194a99dfb4c886e4f"
+        },
+        "project.get_granularity.builtin": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.357,
+          "min_ms": 0.3409,
+          "max_ms": 0.488,
+          "p95_ms": 0.488,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 3,
+              "min": 3,
+              "max": 3
+            }
+          },
+          "result_digest": "979821103bf10b967d400af75f23bd25367636c7640fee6fdfa2e802436ffdbd"
+        },
+        "design.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 54.0453,
+          "min_ms": 26.6855,
+          "max_ms": 74.7673,
+          "p95_ms": 74.7673,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 4501,
+              "min": 4501,
+              "max": 4501
+            }
+          },
+          "result_digest": "31b19ad7047242eff0a874637c5cbca7542a1a5e055b39bcf20b30baa4c60cf5"
+        },
+        "workflow.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 33.9887,
+          "min_ms": 27.6844,
+          "max_ms": 66.2959,
+          "p95_ms": 66.2959,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 3001,
+              "min": 3001,
+              "max": 3001
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "4fb3882debd7dbae183f58be04b9bba94e6345d94bc68cc056233f05b9b2508d"
+        },
+        "workflow.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 27.2514,
+          "min_ms": 24.4081,
+          "max_ms": 47.7186,
+          "p95_ms": 47.7186,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 3001,
+              "min": 3001,
+              "max": 3001
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "2aeca6fd6e8688b649f0f1b585ba3b377d0bd5071dcce147c6ec8da6eda129ec"
+        },
+        "mcp.get_granularity": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.9778,
+          "min_ms": 0.7361,
+          "max_ms": 2.5148,
+          "p95_ms": 2.5148,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "5fb2570dd7bec3c73f40f8128bff7cebdfb8a7fd9b16a4ae0ef5a5e9d0946724"
+        },
+        "mcp.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 51.824,
+          "min_ms": 27.3676,
+          "max_ms": 84.2161,
+          "p95_ms": 84.2161,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 4501,
+              "min": 4501,
+              "max": 4501
+            }
+          },
+          "result_digest": "3ef7b0e1f98fd685381b474586b67373382ff72e177c817fef7c5f21c7087747"
+        },
+        "mcp.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 56.5304,
+          "min_ms": 51.7367,
+          "max_ms": 75.8605,
+          "p95_ms": 75.8605,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 3001,
+              "min": 3001,
+              "max": 3001
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "eebe13d7d4f03835dfac5e003f957e02d3f858d0c964cff923fce94aa4db9cca"
+        },
+        "mcp.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 52.5862,
+          "min_ms": 44.8497,
+          "max_ms": 71.4583,
+          "p95_ms": 71.4583,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 3001,
+              "min": 3001,
+              "max": 3001
+            },
+            "UPDATE": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            }
+          },
+          "result_digest": "13aa21b8ae3e8202c838bb961c453891f760068df1344dab70408abb7bae14d2"
+        }
+      }
+    }
+  ]
+}

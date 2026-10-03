@@ -1,0 +1,255 @@
+{
+  "benchmark_version": 1,
+  "created_at_utc": "2026-10-02T10:53:17.552551+00:00",
+  "git_head": "ffe339d216e1259020543cc762cedf813ab95378",
+  "python": "3.14.7 | packaged by Anaconda, Inc. | (main, Aug 14 2026, 10:12:46) [MSC v.1942 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "sqlite": "3.53.2",
+  "sql_count_method": "Trace callbacks; read-only WITH statements count as SELECT round trips; equivalent to original SELECT counting for the baseline, which contains no WITH",
+  "method": "Warm single-process medians; traced SELECT/write counts; synthetic disposable SQLite files; MCP uses FastMCP.call_tool, excludes transport and startup; inputs checked after every case",
+  "scenarios": [
+    {
+      "modules": 100,
+      "directions_per_module": 3,
+      "tasks": 300,
+      "workflow_state": "One stable dispatched request; no accepted outputs; module dependency chain",
+      "synthetic_history_events": 10000,
+      "actual_event_rows": 10410,
+      "fixture_digest": "8064d7e90e6b073bff726d450a583ed55af088cac6fee3f670b70a62574b50bd",
+      "input_unchanged": true,
+      "input_digest": "b3e70563f0a3a05c729a075485f9b306ea939af5a6864c4eff7ea64dccd73242",
+      "operations": {
+        "project.get_granularity.override": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1767,
+          "min_ms": 0.1283,
+          "max_ms": 0.675,
+          "p95_ms": 0.675,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "bdb16997efe8ce84ceab4484e28a3bf90321c766b6672265cb493ab1d773716a"
+        },
+        "project.get_granularity.project_default": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1297,
+          "min_ms": 0.1134,
+          "max_ms": 0.8659,
+          "p95_ms": 0.8659,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "c386c13c28a9215dda7e11e568d40dd055f5ac80ddca190872783349d1a9ae14"
+        },
+        "project.get_granularity.builtin": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.1304,
+          "min_ms": 0.1128,
+          "max_ms": 0.558,
+          "p95_ms": 0.558,
+          "sql_counts_per_call": {
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "5a9062966e7d47653fd149a83c70b229e388647d38b7be87e9b366eb9a931ab7"
+        },
+        "design.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 3.3192,
+          "min_ms": 3.0931,
+          "max_ms": 3.755,
+          "p95_ms": 3.755,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "9fd6d8289b8763d3f2bd133bb092a7f14914a55b90e4190abcea889d4e96722b"
+        },
+        "workflow.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 3.6523,
+          "min_ms": 3.2848,
+          "max_ms": 4.4963,
+          "p95_ms": 4.4963,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "27a2de5a57cac417c5d5eb0a102713ebaab3263f022c0b3152052b5980cec3c3"
+        },
+        "workflow.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 3.2764,
+          "min_ms": 2.9687,
+          "max_ms": 4.494,
+          "p95_ms": 4.494,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "1a38c7530d415419a57cc8da763cb8036f9a27d9e1c1291fee43450a26ab0722"
+        },
+        "mcp.get_granularity": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 0.9354,
+          "min_ms": 0.8562,
+          "max_ms": 1.2335,
+          "p95_ms": 1.2335,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "COMMIT": {
+              "median": 1,
+              "min": 1,
+              "max": 1
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "5fb2570dd7bec3c73f40f8128bff7cebdfb8a7fd9b16a4ae0ef5a5e9d0946724"
+        },
+        "mcp.allocation_snapshot": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 5.3063,
+          "min_ms": 4.3757,
+          "max_ms": 7.2613,
+          "p95_ms": 7.2613,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "b147d10dd29caa37a06d94e10ae0a814b7d587da40eba355835b1e4687f5f694"
+        },
+        "mcp.workflow_status": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 4.97,
+          "min_ms": 3.9835,
+          "max_ms": 6.3142,
+          "p95_ms": 6.3142,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "38dfaf0329f6a693e6639311034fbf954c61529f7017fdd020cc173b0167c65e"
+        },
+        "mcp.next_task.stable_request": {
+          "repeats": 15,
+          "warmups": 3,
+          "median_ms": 3.9089,
+          "min_ms": 3.4796,
+          "max_ms": 4.4751,
+          "p95_ms": 4.4751,
+          "sql_counts_per_call": {
+            "BEGIN": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "COMMIT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            },
+            "SELECT": {
+              "median": 2,
+              "min": 2,
+              "max": 2
+            }
+          },
+          "result_digest": "dfb254181afae2095b2a8daf347d1a63b75ecd5dfb99b6c6e29a8d9faade4982"
+        }
+      }
+    }
+  ]
+}

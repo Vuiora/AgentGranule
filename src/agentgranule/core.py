@@ -94,6 +94,8 @@ class Project:
                 session_id TEXT NOT NULL REFERENCES sessions(id),
                 timestamp TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL
             );
+            CREATE INDEX IF NOT EXISTS events_session_sequence
+                ON events(session_id, sequence);
         """)
         # Preserve v0.1 count-only databases and historical events/plans in place.
         with self._db:
@@ -169,24 +171,67 @@ class Project:
         """A module is a independently controlled part of a problem; nesting is optional."""
         return self.add_problem(session_id, description, parent_id)
 
-    def _effective(self, problem_id: str, direction: str) -> dict:
-        _text(direction, "direction")
-        row = self._db.execute("SELECT * FROM module_controls WHERE problem_id=? AND direction=?",
-                               (problem_id, direction)).fetchone()
-        source = "module"
-        if row is None:
-            row = self._db.execute("SELECT * FROM granularity_defaults WHERE direction=?", (direction,)).fetchone()
-            source = "project_default"
-        if row is None:
+    @staticmethod
+    def _control_state(problem_id: str, direction: str, row) -> dict:
+        if row["module_parameters"] is not None:
+            parameters = json.loads(row["module_parameters"])
+            source, revision = "module", row["module_revision"]
+        elif row["default_parameters"] is not None:
+            parameters = json.loads(row["default_parameters"])
+            source, revision = "project_default", row["default_revision"]
+        else:
             # Product defaults are proposals, not values explicitly chosen by a user.
             parameters = {"detail_level": "standard"}
             if direction in {"classification", "enumeration", "advantages", "disadvantages"}:
                 parameters["count"] = 3
             source, revision = "builtin_default", 0
-        else:
-            parameters, revision = json.loads(row["parameters"]), row["revision"]
         return {"problem_id": problem_id, "direction": direction, "parameters": parameters,
                 "count": parameters.get("count"), "source": source, "revision": revision}
+
+    def _effective(self, problem_id: str, direction: str) -> dict:
+        _text(direction, "direction")
+        row = self._db.execute("""SELECT
+            c.parameters AS module_parameters, c.revision AS module_revision,
+            d.parameters AS default_parameters, d.revision AS default_revision
+            FROM (SELECT ? AS problem_id, ? AS direction) AS requested
+            LEFT JOIN module_controls AS c ON c.problem_id=requested.problem_id
+                AND c.direction=requested.direction
+            LEFT JOIN granularity_defaults AS d ON d.direction=requested.direction
+        """, (problem_id, direction)).fetchone()
+        return self._control_state(problem_id, direction, row)
+
+    def _granularity_batch(self, pairs):
+        """Yield fresh module/control pairs in caller order, without a state cache.
+
+        Callers hold their domain transaction. Each chunk uses at most 900
+        bindings, including on SQLite builds with a 999-variable limit.
+        Decode each row separately so inherited nested parameters never alias.
+        """
+        pairs = list(pairs)
+        for start in range(0, len(pairs), 450):
+            chunk = pairs[start:start + 450]
+            arguments = []
+            for problem_id, direction in chunk:
+                arguments.extend((_text(problem_id, "problem_id"), _text(direction, "direction")))
+            requested = ",".join(f"({ordinal},?,?)" for ordinal in range(len(chunk)))
+            rows = self._db.execute(f"""WITH requested(ordinal, problem_id, direction) AS
+                (VALUES {requested})
+                SELECT r.problem_id, r.direction, p.id AS actual_id,
+                    p.session_id, p.parent_id, p.description,
+                    c.parameters AS module_parameters, c.revision AS module_revision,
+                    d.parameters AS default_parameters, d.revision AS default_revision
+                FROM requested AS r
+                LEFT JOIN problems AS p ON p.id=r.problem_id
+                LEFT JOIN module_controls AS c ON c.problem_id=r.problem_id AND c.direction=r.direction
+                LEFT JOIN granularity_defaults AS d ON d.direction=r.direction
+                ORDER BY r.ordinal
+            """, arguments).fetchall()
+            for row in rows:
+                if row["actual_id"] is None:
+                    raise GranuleError(f"Unknown problem: {row['problem_id']}")
+                problem = {"id": row["actual_id"], "session_id": row["session_id"],
+                           "parent_id": row["parent_id"], "description": row["description"]}
+                yield problem, self._control_state(row["problem_id"], row["direction"], row)
 
     def get_granularity(self, problem_id: str, direction: str = "classification") -> dict:
         self._problem(problem_id)

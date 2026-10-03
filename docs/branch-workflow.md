@@ -23,6 +23,8 @@ main
 
 ## 审批规则
 
+性能优化在`codex/api-performance`独立开发，基于维护者于2026-10-02合并PR #12后的main ffe339d216e1259020543cc762cedf813ab95378。本轮PR只包含接口查询／轮询优化、性能回归及基准记录；其合并须对新PR当前head SHA重新人工批准。原生3D已合并的审批不能代替本轮审批，不合并或启用自动合并。
+
 [PR #12](https://github.com/Vuiora/AgentGranule/pull/12)曾被维护者关闭，要求修复低分辨率和真正3D展示，没有通过审批记录。本轮继续codex/proportional-module-height返工为原生Qt/OpenGL网格和完整物理像素，完成实际窗口、DPI、GPU隔离、独立进程退出和人工确认回归后重新打开同PR供审查；不创建重复PR，不合并或启用自动合并，审批必须关联新head SHA。
 
 前轮PR #11开发时，用户要求紧凑同图100%占比，并明确仅归一化显示、保留原始力度；在codex/unrelated-module-layout完成并由维护者合并。其布局与渲染审批记录保留，不能代替本轮新代码的审批。

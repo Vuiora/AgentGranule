@@ -1,8 +1,18 @@
+# 2026-10-02 完整回归与原生3D软件路径测试
+
+日期按Asia/Shanghai记录。本轮仅追加可取得的用户／助手原文和明确标注的工具执行摘要；此前历史在已有记录中。本轮不记录隐藏思考、认证机密，不代替真实人工批准。
+
+## 用户（协作规则及环境，原文）
+
+```text
+# AGENTS.md instructions for C:\Users\Lenovo\Desktop\OGv01\ProjectParticle
+
+<INSTRUCTIONS>
+These AGENTS.md instructions replace all previously provided AGENTS.md instructions.
+
 # 项目协作规则
 
 ## 当前范围
-
-- 用户最新要求提高接口运行性能并继续。本轮从维护者已合并PR #12的最新main ffe339d216e1259020543cc762cedf813ab95378创建codex/api-performance，优化单次事务内的批量粒度读取、未变化的工作流轮询和按会话查历史。保留完整对话、参数独立、跨连接最新修订、原子保存、错误及指纹契约；不使用跨请求状态缓存、不伪造人工确认，不合并或自动合并。基准与测试只使用隔离数据。
 
 - 用户最新要求查看GitHub审批并完善；PR #12被维护者关闭且未合并，批注“项目所呈现的的分辨率太低，以及并不是真3D，请修复”，无正式通过审批记录。本轮继续codex/proportional-module-height，默认完整窗口改PySide6/OpenGL真实闭合网格、深度／法线光照与全物理像素framebuffer；旋转不降采样，保留100%分区、独立力度、0.01精度和原子人工保存。真实图形／状态加载失败不得当作批准或伪取消，禁止静默回退；旧Tk仅显式--renderer=tk兼容。仅完成修复和验证后重新提交同PR供审查，仍不合并或自动合并。
 
@@ -45,3 +55,55 @@
 - 无法取得历史消息时注明缺失范围，不编造对话。
 
 项目研发对话仍按此规则手工维护。应用运行时由核心事件存储记录传入的消息与操作；宿主必须显式回传全部可见对话，不声称能自动读取其他聊天。
+
+</INSTRUCTIONS><environment_context>
+  <current_date>2026-10-02</current_date>
+  <timezone>Asia/Shanghai</timezone>
+  <filesystem><workspace_roots><root>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle</root><root>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769</root></workspace_roots><permission_profile type="managed"><file_system type="restricted"><entry access="read"><special>:root</special></entry><entry access="write"><path>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle</path></entry><entry access="write"><path>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769</path></entry><entry access="write"><special>:slash_tmp</special></entry><entry access="write"><special>:tmpdir</special></entry><entry access="read"><path>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle\.git</path></entry><entry access="read"><path>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769\.git</path></entry><entry access="read"><path>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle\.agents</path></entry><entry access="read"><path>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769\.agents</path></entry><entry access="read"><path>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle\.codex</path></entry><entry access="read"><path>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769\.codex</path></entry><entry access="read"><path>C:\Users\Lenovo\Desktop\OGv01\ProjectParticle\.aws</path></entry><entry access="read"><path>C:\Users\Lenovo\.codex\visualizations\2026\09\30\01a0f133-a04c-75e0-8473-46efb023d769\.aws</path></entry></file_system></permission_profile></filesystem>
+  <subagents>
+    <agent name="/root/confirm_ui_diagnosis" />
+    <agent name="/root/decimal_review" />
+    <agent name="/root/design_backend" />
+    <agent name="/root/design_integration_tests" />
+    <agent name="/root/design_native_ui" />
+    <agent name="/root/design_review" />
+    <agent name="/root/feature_analysis_evidence" />
+    <agent name="/root/height_geometry" />
+  </subagents>
+</environment_context>
+```
+
+## 用户（页面上下文，原文）
+
+<external_codex_apps_open_page>{"page_id":null}</external_codex_apps_open_page>
+
+## 用户（原文）
+
+```text
+ 进行一轮测试
+```
+
+## 助手
+
+我会运行一轮完整回归，并验证当前原生 3D 窗口的渲染、交互和正常退出。
+
+## 工具／协作执行摘要
+
+- 当前codex/proportional-module-height，head=d0fa7b6da92687bdc71d9821279960e4ec96a221；已有未提交文件仅之前对话记录，保留。读取当前AGENTS、测试集、可选依赖及CI配置，不修改实现或审批状态。
+- 主代理设置AGENTGRANULE_REQUIRE_OPENGL=1、清除本进程QT_OPENGL覆盖，运行python -X utf8 -m unittest discover -s tests -v。完整189项在28.911秒通过、exit0，无失败／错误／跳过；原始完整工具日志在.agentgranule/2026-10-02-full-tests.log。输出的cancelled来自隔离入口测试，不是实际项目批准或设置保存。
+- 子代理独立只读审查原生GL／Qt界面／入口失败测试，确认真实上下文与framebuffer、GPU邻区像素隔离、0.01输入、两阶段人工确认、取消、过期保存、GL／状态失败及python/pythonw独立退出覆盖。测试使用IsolatedService或临时库，不自动操作真实项目窗口。MSAA测试核对实际样本数类型，不据此声称所有图形后端保证抗锯齿。
+- 待主代理硬件完整回归退出后，子代理再设置AGENTGRANULE_REQUIRE_OPENGL=1和QT_OPENGL=software运行15项原生GL／Qt软件路径专项，避免同时测试窗口导致焦点干扰。软件结果另行追加。
+
+## 助手
+
+完整回归的 189 项测试全部通过，无失败或跳过，覆盖算法、MCP、原子保存和原生 3D 窗口。正在补测软件 OpenGL 下的 15 项渲染与交互测试。
+
+## 工具／协作执行摘要
+
+软件专项完成：原生GL4项4.746秒、Qt UI11项13.106秒，共15项全部通过，无失败／错误／跳过，两进程exit0。主代理重新读取完整及软件日志，核对Ran/OK与失败／跳过情况。本轮环境Windows、Python3.14.7、PySide6 6.11.2、MCP1.30.0、PyYAML6.0.3。实际上下文、framebuffer和独立退出断言通过，但日志没有打印精确厂商／版本／DPR／像素数，不借用前日数值作为本轮实测。测试没有自动审批或保存真实设置。创建docs/test-reports/2026-10-02-regression.md；本轮只新增测试报告及本日对话记录，不提交、推送或合并代码。宿主将本日可见消息显式追加到既有项目会话事件存储，只记录提供的内容，不自动读取其他聊天。
+
+## 助手（最终回复）
+
+本轮测试全部通过：完整回归 189 项，软件 OpenGL 专项 15 项，无失败或跳过。覆盖 3D 渲染、0.01 粒度、人工确认及窗口正常退出。
+
+[查看测试报告](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/docs/test-reports/2026-10-02-regression.md)

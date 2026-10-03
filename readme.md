@@ -18,6 +18,8 @@
 
 189项本地自动测试通过，包括实际OpenGL framebuffer、Qt人工确认、独立进程正常退出及核心／MCP／CLI回归。本机150%缩放下800×600视口直接输出1200×900图像；奇数尺寸931×611对应1397×917也已验证。真实硬件与软件OpenGL均走完整3D网格管线，见[运行与渲染示例](docs/module-design-3d.md)。
 
+`codex/api-performance`优化事务内批量读取与未变工作流轮询：500模块合成基准中，分配快照54.05→13.25ms，MCP快照51.82→16.12ms，SELECT4501→5；返回结果、最新修订、完整记录及原子审批契约不变。198项回归通过，仍待本轮人工审查；可复现方法与适用范围见[接口性能报告](docs/api-performance.md)。
+
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
 蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。

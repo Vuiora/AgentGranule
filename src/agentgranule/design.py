@@ -177,13 +177,13 @@ class Design:
         if data["state"] != "approved":
             raise GranuleError("Approve the module analysis before allocating design effort")
         controls = []
-        for module in sorted(data["analysis"]["modules"], key=lambda module: module["id"]):
-            actual_id = data["module_ids"][module["id"]]
-            for direction in sorted(module["directions"]):
-                control = self.project.get_granularity(actual_id, direction)
-                if self.project._problem(actual_id)["session_id"] != data["session_id"]:
-                    raise GranuleError("Approved modules must belong to the analysis session")
-                controls.append({**control, "module_id": actual_id})
+        pairs = [(data["module_ids"][module["id"]], direction)
+                 for module in sorted(data["analysis"]["modules"], key=lambda module: module["id"])
+                 for direction in sorted(module["directions"])]
+        for problem, control in self.project._granularity_batch(pairs):
+            if problem["session_id"] != data["session_id"]:
+                raise GranuleError("Approved modules must belong to the analysis session")
+            controls.append({**control, "module_id": control["problem_id"]})
         return {"analysis_id": data["analysis_id"], "revision": data["revision"],
                 "workflow_id": data["workflow_id"], "controls": controls}
 

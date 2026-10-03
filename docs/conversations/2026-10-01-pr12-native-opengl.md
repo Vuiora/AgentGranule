@@ -133,3 +133,35 @@ PR #12 已关闭，维护者要求修复“分辨率太低、并不是真 3D”�
 ## 工具执行摘要
 
 生命周期修复后的软件OpenGL完整189项回归23.480秒通过，exit0、无跳过。git diff --check通过；仅提交本轮原生GL返工、测试、文档、Skill和10/1相关对话记录，保留此前9/30无关未提交记录。不更改真实模块图及力度；随后推送原分支并重新打开PR #12接受人工审查，不合并、不启用自动合并。
+
+## 工具执行摘要
+
+已提交并推送d0fa7b6da92687bdc71d9821279960e4ec96a221（Render native OpenGL modules at full DPI resolution），23文件，2238增行／29减行。更新同PR #12的标题、最终说明、实际GPU示例与验证，再重新打开PR；远端核对state=OPEN、head=d0fa7b6、reviews为空、reviewDecision为空、mergedAt=null、autoMergeRequest=null、milestone2保留。推送与重开分别触发4组合CI，共8检查仍运行。没有发表对维护者的评论消息，没有合并操作。
+
+## 助手
+
+返工已推送，[PR #12](https://github.com/Vuiora/AgentGranule/pull/12) 已重新打开。本地硬件和软件 OpenGL 的 189 项测试均通过，远端 Ubuntu／Windows、Python 3.11／3.14 检查正在运行；PR 仍待人工审批。
+
+## 助手
+
+Windows 和 Ubuntu 的 Python 3.14 检查已通过，包括实际 OpenGL 窗口与退出测试。Python 3.11 检查仍在运行或排队，我会核对全部结果。
+
+## 工具执行摘要
+
+远端首轮Ubuntu3.11、Windows3.14与PR轮Ubuntu／Windows3.14成功，其余运行或排队。尝试复用check-height-window.py时发现该脚本不存在（exit1），没有修改数据；改为直接读取自己启动窗口的状态与真实项目get_analysis/allocation_snapshot，不据不存在脚本声称验证成功。
+
+## 追加纠正／工具执行摘要
+
+重新直接读取真实启动的唯一输出文件发现其存在，内容为{"status":"cancelled"}，创建／写入时间22:17:07；此前“未生成结果文件”的判断不准确，保留原文并在此纠正。实际窗口返回取消后发生旧生命周期退出异常，并非已保存；其退出码仍为0xC0000409，不能依据文件单独当作成功。真实DB核对state=approved、revision4、workflow_id=null、assigned0/8，没有力度保存或新审批。修复后的隔离子进程才同时验证了cancelled与exit0。当前head8检查已有5项成功，2项运行、1项排队。
+
+## 工具执行摘要
+
+交付前远端复核head=d0fa7b6da92687bdc71d9821279960e4ec96a221，8项检查全部SUCCESS：push run36876922817与pull_request run36876990897，各含Ubuntu／Windows × Python3.11／3.14。PR #12仍OPEN、reviews为空、reviewDecision为空、mergedAt=null、autoMergeRequest=null，未获人工批准、未合并。完整实现／测试／文档已推送；后续审批状态、补充对话及本次最终回复追加至本地本日记录，并显式回传runtime可见消息存储。此前9/30无关未提交文件保留。
+
+## 助手（最终回复）
+
+已按 GitHub 批注修复低分辨率和非真实 3D：改用原生 OpenGL，并修复窗口退出崩溃。
+
+189 项本地测试、8 项跨平台 CI 均通过。[PR #12](https://github.com/Vuiora/AgentGranule/pull/12) 已重新打开，待人工审批，尚未合并。
+
+[查看渲染示例](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/docs/assets/native-opengl-preview.png)

@@ -24,6 +24,8 @@
 
 最终保留技能入口默认“工作”模式，在编辑器的“插件”选择器中选择既有AgentGranule Personal，实际消息同时保留技能和插件引用。模型实际读取已安装SKILL.md及references/remote-contract.md，说明真实图确认、0.00–1.00/0.01力度、完整原文记录契约，并通过私有MCP读取同一测试会话的2事件。Work中Skill与MCP联合验收通过；没有创建图、保存力度、执行审批或新增消息。普通聊天MCP跨对话调用和Work技能执行均已实际验证，当前账号普通聊天读取独立Skill文件未通过，不能泛化为所有Skills或账号的产品限制。
 
+[草稿PR #14](https://github.com/Vuiora/AgentGranule/pull/14)以未合并的codex/api-performance为目标。初次平台回归中Ubuntu通过，Windows的225项运行暴露测试fixture的TEMP短路径差异与Python 3.11缺少Path.is_junction，已改为规范化临时路径和真实reparse tag检查，保留出界禁止读取断言；未修改生产路径边界或跳过junction测试。修复后本地源边界15项（9通过、6权限跳过）与启动6项通过；多平台最终结果以PR当前head的检查为准，不合并或自动合并。
+
 本轮分支 `codex/chatgpt-personal-connection` 基于 `codex/api-performance` 的877a2efe5758df9c0cb25f81cdeed2e90327334f，未合并；现有未提交的API设计与历史记录保留。本轮准备既有服务的私有连接脚本、远程Skill和可选源码扫描边界，不实现新的HTTP服务或模型供应商。
 
 ## 连接私有服务

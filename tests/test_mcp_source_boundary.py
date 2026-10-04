@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -21,11 +22,13 @@ class SourceBoundaryTests(unittest.TestCase):
     def setUp(self):
         self.fixture = tempfile.TemporaryDirectory()
         self.addCleanup(self.fixture.cleanup)
-        self.base = Path(self.fixture.name)
+        self.base = Path(self.fixture.name).resolve()
         self.allowed = self.base / "allowed"
         self.outside = self.base / "allowed-neighbour"
         self.allowed.mkdir()
         self.outside.mkdir()
+        self.allowed = self.allowed.resolve()
+        self.outside = self.outside.resolve()
         (self.outside / "private.py").write_text("def private(): pass\n", encoding="utf-8")
 
     def symlink(self, link, target, *, directory=False):
@@ -45,9 +48,11 @@ class SourceBoundaryTests(unittest.TestCase):
         )
         if process.returncode != 0:
             self.skipTest("Creating a fixture Windows junction is unavailable")
-        self.assertTrue(link.is_junction())
         # Remove only the fixture link; never traverse or delete its target.
         self.addCleanup(link.rmdir)
+        # Path.is_junction() was added in Python 3.12. Verify the actual
+        # mount-point reparse tag on every supported Windows Python version.
+        self.assertEqual(os.lstat(link).st_reparse_tag, stat.IO_REPARSE_TAG_MOUNT_POINT)
 
     def source(self):
         source = self.allowed / "src"
@@ -58,7 +63,7 @@ class SourceBoundaryTests(unittest.TestCase):
             '"""Actual source."""\nraise RuntimeError("must never execute")\nclass Thing: pass\n',
             encoding="utf-8",
         )
-        return source
+        return source.resolve()
 
     def test_regular_root_and_subroot_match_default_static_inventory(self):
         source = self.source()
@@ -93,18 +98,25 @@ class SourceBoundaryTests(unittest.TestCase):
         source = self.source()
         logical = source / "escape.py"
         logical.write_text("def placeholder(): pass\n", encoding="utf-8")
+        logical = logical.resolve()
+        outside_file = (self.outside / "private.py").resolve()
+        self.assertFalse(outside_file.is_relative_to(self.allowed))
         original = Path.resolve
+        redirected = []
 
         def resolved(path, *args, **kwargs):
             # Exercise the boundary decision independently of OS link privileges.
             if path == logical:
-                return self.outside / "private.py"
+                redirected.append(path)
+                return outside_file
             return original(path, *args, **kwargs)
 
         with patch.object(Path, "resolve", resolved):
-            with patch("agentgranule.framework.tokenize.open", side_effect=AssertionError("must not open")):
+            with patch("agentgranule.framework.tokenize.open", side_effect=AssertionError("must not open")) as opened:
                 with self.assertRaisesRegex(GranuleError, "allowed_root"):
                     analyze_framework(str(self.allowed), allowed_root=self.allowed)
+                self.assertIn(logical, redirected)
+                opened.assert_not_called()
 
     def assert_directory_escape_not_traversed(self):
         original = Path.iterdir

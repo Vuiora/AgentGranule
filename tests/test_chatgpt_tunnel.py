@@ -37,6 +37,8 @@ class ChatGPTTunnelTests(unittest.TestCase):
     def fixture(self, directory):
         root = Path(directory) / "接入 fixture with spaces"
         (root / "scripts").mkdir(parents=True)
+        # Windows TEMP can use an 8.3 alias; match the canonical production ROOT.
+        root = root.resolve()
         shutil.copyfile(ENTRYPOINT, root / "scripts" / ENTRYPOINT.name)
         local = root / ".agentgranule" / "chatgpt"
         return root, local

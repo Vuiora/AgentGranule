@@ -333,3 +333,42 @@ Skill 包的兼容格式仍被页面拒绝，我会继续核对导入限制；�
 ```text
 重新从真实技能入口进入默认Work，替换预填虚构用户示例为只读隔离验收。Work编辑器插件选择器仅选择既有AgentGranule Personal；实际发送消息同时包含agentgranule workflow技能与私有插件引用。模型实际读取SKILL.md及references/remote-contract.md，准确返回图与修订人工确认、design_effort有限数字0.00–1.00/0.01且无自动舍入、完整原文及摘要标注契约，并真实history回读原测试消息和2个事件。未运行本地CLI冒充服务、未创建图、设置力度、执行审批或追加消息。保存真实联合验收截图并保留页面。官方材料未承诺本账号网页独立Skill在普通Chat的执行支持，文档仅记录该账号实测差异。父PR #13再次只读核对为OPEN且未合并，head仍877a2efe5758df9c0cb25f81cdeed2e90327334f；准备以父分支为目标的draft PR，禁止合并。
 ```
+
+## assistant（原文）
+
+```text
+草稿 [PR #14](https://github.com/Vuiora/AgentGranule/pull/14) 已创建，目标为尚未合并的性能分支。相关本地回归累计 29 项通过、6 项因 Windows 符号链接权限跳过；GitHub 的 Ubuntu／Windows、Python 3.11／3.14 检查正在运行。当前未执行合并。
+```
+
+## assistant（原文）
+
+```text
+GitHub 的 Ubuntu 检查通过了，Windows 检查出现失败。我会先定位并修复这个差异，再交付代码。已经完成的个人连接、Skill 安装和真实调用验收仍然有效。
+```
+
+## assistant（原文）
+
+```text
+失败原因已定位到测试兼容性：Windows Runner 的临时目录使用短路径名，另有一处测试调用了 Python 3.11 尚未提供的方法。已修复测试路径和 junction 检查方式，源码与运行中的连接均未改动。
+
+![Skill 与 MCP 联合验收](C:/Users/Lenovo/Desktop/OGv01/ProjectParticle/.agentgranule/chatgpt/skill-mcp-verified-2026-10-04.jpg)
+```
+
+## tool（执行摘要，非工具全文）
+
+```text
+本轮17个明确文件暂存，未包含旧API设计与历史变更；暂存文本扫描没有密钥值或真实账号绑定ID，diff --check通过。提交5e0e98b并push当前个人接入分支，创建draft PR #14且attach_artifact成功，目标父codex/api-performance，不合并。Ubuntu Python3.11/3.14首轮CI通过，Windows首轮225测试失败；读取两版本日志证明仅新fixture短路径/规范路径比对与311 Path.is_junction兼容测试问题。两agent仅修改tests/test_chatgpt_tunnel.py和tests/test_mcp_source_boundary.py，规范临时root.resolve并使用lstat mount-point reparse tag，新增实际mock命中且禁止读取断言；生产源码未修改，也未削弱范围、增加跳过或重启用户隧道。根Agent复跑15源边界+6启动隔离测试，15通过6原symlink权限跳过，3真实junction均通过，官方client隔离预检与UTF-8 stdio通过。准备推送同PR并等待当前head平台回归。
+```
+
+## assistant（最终回复原文，交付前记录；将在平台回归通过后发送）
+
+```text
+已完成个人 ChatGPT 私有连接和 Skill 安装，跨对话读写、Work 中的 Skill＋MCP 调用均已验证。
+
+1. 在[技能页](https://chatgpt.com/skills)打开 **agentgranule workflow**，点击“在聊天中试用”。
+2. 保持 **工作** 模式，在 **插件** 中选择 **AgentGranule Personal**，再输入任务。
+
+保持本地隧道终端运行；跨对话续作请带原 `session_id`。当前账号的完整 Skill 流程使用工作模式。
+
+代码已提交[草稿 PR #14](https://github.com/Vuiora/AgentGranule/pull/14)，未合并。
+```

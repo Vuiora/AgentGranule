@@ -23,6 +23,10 @@ main
 
 ## 审批规则
 
+个人ChatGPT接入在`codex/chatgpt-personal-connection`开发，创建时基于未合并的`codex/api-performance` head 877a2efe5758df9c0cb25f81cdeed2e90327334f。包含既有stdio服务的私有隧道配置脚本、远程Skill包装、可选源码扫描边界和接入说明；不把本地预检表述为账号安装成功，不将账号绑定ID／数据库／密钥提交仓库。后续PR须先核对父分支是否合并并明确目标，仍不合并或自动合并；创建个人连接的权限确认与项目代码合并审批分别记录。
+
+用户随后要求 Agent 只有确认真实人工操作后才继续，在现有个人接入分支与 PR #14 补充本地／ChatGPT Skill 的等待规则及实际账号副本更新。仅约束宿主任务推进，不把 actor 字符串或示例回复当成人类身份认证；模块图、力度及单项设置待确认时结束本轮，真实确认且当前修订有效才恢复。追加提交使 PR head 改变，原先检查与审批不能代替新 head 的验收；仍不合并或自动合并。
+
 性能优化在`codex/api-performance`独立开发，基于维护者于2026-10-02合并PR #12后的main ffe339d216e1259020543cc762cedf813ab95378。本轮PR只包含接口查询／轮询优化、性能回归及基准记录；其合并须对新PR当前head SHA重新人工批准。原生3D已合并的审批不能代替本轮审批，不合并或启用自动合并。
 
 [PR #12](https://github.com/Vuiora/AgentGranule/pull/12)曾被维护者关闭，要求修复低分辨率和真正3D展示，没有通过审批记录。本轮继续codex/proportional-module-height返工为原生Qt/OpenGL网格和完整物理像素，完成实际窗口、DPI、GPU隔离、独立进程退出和人工确认回归后重新打开同PR供审查；不创建重复PR，不合并或启用自动合并，审批必须关联新head SHA。

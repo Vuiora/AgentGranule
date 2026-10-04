@@ -372,3 +372,40 @@ GitHub 的 Ubuntu 检查通过了，Windows 检查出现失败。我会先定位
 
 代码已提交[草稿 PR #14](https://github.com/Vuiora/AgentGranule/pull/14)，未合并。
 ```
+
+## assistant（原文）
+
+```text
+兼容修复已推送到同一 PR，当前 head 为 `72a8d10`。新的 Ubuntu 两个 Python 版本检查均通过，Windows 检查还在运行；我会核对它们的最终结果。
+```
+
+## user（原文）
+
+```text
+继续
+```
+
+## assistant（原文）
+
+```text
+私有连接和 Skill 安装已完成，跨对话调用也已验证。我继续核对最后的 Windows 测试结果，然后给你具体调用步骤。
+```
+
+## tool（执行摘要，非工具全文）
+
+```text
+恢复gh pr checks watcher并读取最终输出，8项Ubuntu/Windows、Python3.11/3.14检查全部pass。首次默认网络gh pr view因沙箱网络访问受限失败；后以require_escalated只读重试成功，自动审批允许，未向用户追加权限请求。核对PR #14当前head=72a8d10fdd9de7c83cc10090a9b610ecbedae68c、OPEN/draft、目标codex/api-performance，全部8项statusCheckRollup为SUCCESS/COMPLETED。将当前head平台检查通过证据追加PR说明，gh pr edit --body-file成功，无新增代码提交、无合并或自动合并。最后补记真实可见对话和交付回复，保持原测试会话2事件不变。
+```
+
+## assistant（原文，最终交付）
+
+```text
+已完成个人 ChatGPT 私有连接和 Skill 安装，跨对话读写、Work 中的 Skill＋MCP 调用均已验证。
+
+1. 在[技能页](https://chatgpt.com/skills)打开 **agentgranule workflow**，点击“在聊天中试用”。
+2. 保持 **工作** 模式，在 **插件** 中选择 **AgentGranule Personal**，再输入任务。
+
+保持本地隧道终端运行；跨对话续作请带原 `session_id`。当前账号的完整 Skill 流程使用工作模式。
+
+Ubuntu／Windows 的全部测试检查已通过。代码已提交[草稿 PR #14](https://github.com/Vuiora/AgentGranule/pull/14)，未合并。
+```

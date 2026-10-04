@@ -4,6 +4,8 @@
 
 以实际工具目录和 inputSchema 为准。MCP 成功读取 structuredContent：返回标量／列表的核心操作包装在 result 字段，工作流操作直接返回对象；错误使用 isError=true。不要用错误返回或缺少结果继续执行。
 
+需要人工操作时，按 SKILL.md 的等待规则结束当前轮次。`request_granularity` 只返回问题，`actor` 只用于事件记录；这些字段不会认证人类，也不会在低层 API 上建立统一暂停锁。宿主必须自己保持待确认阶段，不得通过直接 `create_workflow`／`next_task` 绕过图审核或分配确认。恢复时先核对真实回复及当前修订，再调用审批或设置接口；错误不解除等待。
+
 | 工具 | 主要参数 | 返回用途 |
 | --- | --- | --- |
 | create_session | title | result: session_id |

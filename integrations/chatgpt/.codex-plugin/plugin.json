@@ -1,0 +1,19 @@
+{
+  "name": "agentgranule-personal",
+  "version": "0.1.2",
+  "description": "在自己的 ChatGPT 对话中使用 AgentGranule 模块与粒度工作流",
+  "author": { "name": "Vuiora" },
+  "repository": "https://github.com/Vuiora/AgentGranule",
+  "skills": "./skills/",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "AgentGranule",
+    "shortDescription": "按模块分配粒度并保存任务记录",
+    "longDescription": "通过已连接的 AgentGranule 服务分析任务模块，由调用者确认模块图并手动分配 0.01 精度的设计力度，再按依赖处理任务、局部重算并保存实际回传的可见对话。需要私有连接保持在线；不会自动读取其他聊天，也不会在网页中显示本机的 3D 窗口。",
+    "developerName": "Vuiora",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "logo": "./assets/agentgranule.png",
+    "composerIcon": "./assets/agentgranule.png"
+  }
+}

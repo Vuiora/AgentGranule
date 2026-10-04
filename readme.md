@@ -20,6 +20,8 @@
 
 `codex/api-performance`优化事务内批量读取与未变工作流轮询：500模块合成基准中，分配快照54.05→13.25ms，MCP快照51.82→16.12ms，SELECT4501→5；返回结果、最新修订、完整记录及原子审批契约不变。198项回归通过，仍待本轮人工审查；可复现方法与适用范围见[接口性能报告](docs/api-performance.md)。
 
+`codex/chatgpt-personal-connection`提供个人ChatGPT的私有MCP隧道与远程Skill包装，复用现有19工具；隔离回归、普通聊天跨对话读写，以及已安装Skill在Work模式的真实加载／调用均已通过。当前账号的普通聊天未能加载该独立Skill，完整流程使用已验证的Work入口。配置方法和实际边界见[个人ChatGPT接入](docs/chatgpt-personal.md)。
+
 框架包含 SQLite 对话与事件存储、可独立或嵌套的处理模块、各方向粒度参数、默认值、人工覆盖、粒度询问、带版本的计划及结果校验；本地界面可通过滑块设置粒度。外部 Agent／模型负责按计划处理，宿主负责将可见对话传入记录。尚未实现模型供应商接入或身份认证。
 
 蓝图见 [docs/blueprint.md](docs/blueprint.md)，分支与审批流程见 [docs/branch-workflow.md](docs/branch-workflow.md)。[Milestone：v0.1 — 框架与可审批接入](https://github.com/Vuiora/AgentGranule/milestone/1)。

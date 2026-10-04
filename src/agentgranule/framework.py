@@ -17,29 +17,81 @@ from .core import GranuleError, _text
 IGNORED = {".git", ".venv", "venv", "node_modules", "__pycache__", ".agentgranule", "build", "dist", "tests"}
 
 
-def analyze_framework(root_path: str) -> dict:
+def _bounded_path(path: Path, allowed_root: Path) -> Path:
+    """Check resolved paths before traversing or reading bounded source."""
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise GranuleError("Cannot resolve source path within allowed_root") from exc
+    if not resolved.is_relative_to(allowed_root):
+        raise GranuleError("Source path must stay within allowed_root")
+    return resolved
+
+
+def _bounded_python_files(source: Path, allowed_root: Path) -> list[Path]:
+    """Validate directory links, including Windows junctions, before descent."""
+    files = []
+    pending = [(source, ())]
+    while pending:
+        directory, ancestors = pending.pop()
+        resolved = _bounded_path(directory, allowed_root)
+        if not resolved.is_relative_to(source):
+            raise GranuleError("Source directories must stay within the source directory")
+        if resolved in ancestors:
+            raise GranuleError("Cyclic source directory links are not supported")
+        try:
+            children = sorted(resolved.iterdir())
+        except OSError as exc:
+            raise GranuleError("Cannot list source directory within allowed_root") from exc
+        for child in children:
+            if child.name in IGNORED or child.name.endswith(".egg-info"):
+                continue
+            target = _bounded_path(child, allowed_root)
+            if not target.is_relative_to(source):
+                raise GranuleError("Source paths must stay within the source directory")
+            # Preserve the logical path used for module IDs, even for internal links.
+            logical = directory / child.name
+            if target.is_dir():
+                pending.append((logical, (*ancestors, resolved)))
+            elif child.match("*.py") and target.is_file():
+                files.append(logical)
+    return sorted(files)
+
+
+def analyze_framework(root_path: str, *, allowed_root: str | Path | None = None) -> dict:
     """Inventory .py modules, public symbols and local imports into an analysis.
 
     Prefer root/src when present. Files outside the source root (including
     symlinks) are rejected. Cyclic imports are returned as separate relationships,
     with an empty proposed execution DAG for human revision, never silently lost.
+    An optional allowed_root also bounds traversal before entering directories.
+    Path checks assume no concurrent link replacement; this is not an OS sandbox.
     """
     _text(root_path, "root_path")
-    root = Path(root_path).resolve()
+    boundary = None
+    if allowed_root is not None:
+        _text(str(allowed_root), "allowed_root")
+        boundary = Path(allowed_root).resolve()
+        if not boundary.is_dir():
+            raise GranuleError("allowed_root must be an existing directory")
+    root = _bounded_path(Path(root_path), boundary) if boundary is not None else Path(root_path).resolve()
     if not root.is_dir():
         raise GranuleError("root_path must be an existing directory")
-    source = (root / "src").resolve() if (root / "src").is_dir() else root
+    source_candidate = _bounded_path(root / "src", boundary) if boundary is not None else root / "src"
+    source = source_candidate.resolve() if source_candidate.is_dir() else root
     if not source.is_relative_to(root):
         raise GranuleError("Source directory must stay within root_path")
-    files = [file for file in sorted(source.rglob("*.py"))
-             if not any(part in IGNORED or part.endswith(".egg-info") for part in file.relative_to(source).parts)]
+    files = (_bounded_python_files(source, boundary) if boundary is not None else
+             [file for file in sorted(source.rglob("*.py"))
+              if not any(part in IGNORED or part.endswith(".egg-info") for part in file.relative_to(source).parts)])
     if not files:
         raise GranuleError("No Python framework modules found; the host must analyze other materials")
     entries = {}
     file_hashes = {}
-    root_package = (source / "__init__.py").is_file()
+    root_package = (source / "__init__.py" in files) if boundary is not None else (source / "__init__.py").is_file()
     for file in files:
-        if not file.resolve().is_relative_to(source):
+        read_path = _bounded_path(file, boundary) if boundary is not None else file.resolve()
+        if not read_path.is_relative_to(source):
             raise GranuleError("Source files must stay within the source directory")
         relative = file.relative_to(source)
         parts = list(relative.with_suffix("").parts)
@@ -52,7 +104,7 @@ def analyze_framework(root_path: str) -> dict:
         if name in entries:
             raise GranuleError(f"Ambiguous Python module name {name}; review the source layout")
         try:
-            with tokenize.open(file) as stream:
+            with tokenize.open(read_path if boundary is not None else file) as stream:
                 source_text = stream.read()
             tree = ast.parse(source_text, filename=str(relative))
             file_hashes[relative.as_posix()] = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
